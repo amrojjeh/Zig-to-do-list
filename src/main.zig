@@ -28,5 +28,5 @@ pub fn help() void {
         \\=== Examples ===
         \\todo Literature Review : Adds lit review as a task
         \\todo Literature Review due Wednesday: Adds lit review as a task which is due Wednesday
-        , .{});
+    , .{});
 }
