@@ -1,5 +1,7 @@
 const std = @import("std");
 const Todo = @import("todo.zig").Todo;
+const DateAndTime = @import("date.zig").DateAndTime;
+const assert = std.debug.assert;
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -9,17 +11,14 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(allocator);
 
-    if (args.len == 1) {
-        help();
-        return;
-    }
-
     for (args) |word| {
         std.debug.print("{}\n", .{word});
     }
 
-    var todo = try Todo.root("todo.todo");
-    defer todo.close();
+    _ = DateAndTime.now();
+
+    // var todo = try Todo.root("todo.todo");
+    // defer todo.close();
 }
 
 pub fn help() void {
