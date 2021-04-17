@@ -1,6 +1,7 @@
 const std = @import("std");
-const Todo = @import("todo.zig").Todo;
-const DateAndTime = @import("date.zig").DateAndTime;
+const io = @import("io.zig");
+const Todo = @import("todo.zig");
+const DateAndTime = @import("date.zig");
 const assert = std.debug.assert;
 
 pub fn main() !void {
@@ -17,8 +18,10 @@ pub fn main() !void {
 
     _ = DateAndTime.now();
 
-    // var todo = try Todo.root("todo.todo");
-    // defer todo.close();
+    const todo = try Todo.init(allocator, 2);
+    defer todo.close();
+
+    try io.save("todo.todo", todo);
 }
 
 pub fn help() void {
