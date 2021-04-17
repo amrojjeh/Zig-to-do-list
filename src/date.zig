@@ -60,10 +60,12 @@ pub fn isLeapYear(y: i64) bool {
     return false;
 }
 
+/// Checks if the date falls under a leap year
 pub fn isLeap(self: Self) bool {
     return isLeapYear(self.year());
 }
 
+/// Returns a slice of all the days in each month
 pub fn yearMonths(self: Self) []const i64 {
     return if (self.isLeap()) leap_year_months[0..] else normal_year_months[0..];
 }
@@ -109,10 +111,11 @@ pub fn add(self: Self, other: Self) Self {
         .minutes = self.minutes + other.minutes,
         .seconds = self.seconds + other.seconds,
     };
-    
+
     return result.normalize();
 }
 
+/// Normalizes a date, so that all values are within their range
 pub fn normalize(self: Self) Self {
     var days = self.days;
     var hours = self.hours;
@@ -148,7 +151,7 @@ pub fn normalize(self: Self) Self {
     };
 }
 
-/// To handle timezones
+/// Handles timezones
 pub fn utc(self: Self, hours: i64, minutes: i64) Self {
     return self.add(Self {
         .hours = hours,
