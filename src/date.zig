@@ -2,7 +2,7 @@ const std = @import("std");
 const time = std.time;
 const testing = std.testing;
 
-// Default would be read as January 1st, 1970
+// Default would be read as 1970-01-01T00:00:00Z
 days: i64 = 0,
 hours: i64 = 0,
 minutes: i64 = 0,
@@ -109,7 +109,7 @@ pub fn add(self: Self, other: Self) Self {
         .minutes = self.minutes + other.minutes,
         .seconds = self.seconds + other.seconds,
     };
-
+    
     return result.normalize();
 }
 
@@ -123,21 +123,21 @@ pub fn normalize(self: Self) Self {
         minutes += @divFloor(seconds, 60);
         seconds = @rem(seconds, 60);
         if (seconds < 0)
-            seconds = 60 - seconds;
+            seconds = 60 + seconds;
     }
 
     if (minutes > 59 or minutes < 0) {
         hours += @divFloor(minutes, 60);
         minutes = @rem(minutes, 60);
         if (minutes < 0)
-            minutes = 60 - minutes;
+            minutes = 60 + minutes;
     }
 
     if (hours > 23 or hours < 0) {
         days += @divFloor(hours, 24);
         hours = @rem(hours, 24);
         if (hours < 0)
-            hours = 24 - hours;
+            hours = 24 + hours;
     }
 
     return Self {
@@ -146,6 +146,14 @@ pub fn normalize(self: Self) Self {
         .minutes = minutes,
         .seconds = seconds,
     };
+}
+
+/// To handle timezones
+pub fn utc(self: Self, hours: i64, minutes: i64) Self {
+    return self.add(Self {
+        .hours = hours,
+        .minutes = minutes,
+        });
 }
 
 fn indexBeforeSumExceedsValue(val: i64, list: []const i64) usize {
@@ -190,6 +198,37 @@ test "Epoch To Date" {
     };
 
     testing.expectEqual(expectedDate, date);
+}
+
+test "Normalize" {
+    {
+        const date = Self {
+            .days = 18725,
+            .hours = 25,
+        };
+
+        const normalized = date.normalize();
+        const expected_date = Self {
+            .days = 18725 + 1,
+            .hours = 1,
+        };
+
+        testing.expectEqual(expected_date, normalized);
+    }
+    {
+        const date = Self {
+            .days = 18725,
+            .hours = -1,
+        };
+
+        const normalized = date.normalize();
+        const expected_date = Self {
+            .days = 18725 - 1,
+            .hours = 23,
+        };
+
+        testing.expectEqual(expected_date, normalized);
+    }
 }
 
 test "Date to epoch" {
@@ -239,4 +278,23 @@ test "Get year, month, and day" {
     testing.expectEqual(@as(i64, 2021), date.year());
     testing.expectEqual(@as(i64, 4), date.month());
     testing.expectEqual(@as(i64, 8), date.day());
+}
+
+test "Timezones" {
+    const date = Self {
+        .days = 18725,
+        .hours = 1,
+    };
+
+    // No daylight savings
+    const cst_time = date.utc(-6, 0);
+    const expected_date = Self {
+        .days = 18725 - 1,
+        .hours = 19,
+    };
+
+    testing.expectEqual(expected_date, cst_time);
+    testing.expectEqual(@as(i64, 2021), cst_time.year());
+    testing.expectEqual(@as(i64, 4), cst_time.month());
+    testing.expectEqual(@as(i64, 7), cst_time.day());
 }
