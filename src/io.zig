@@ -14,14 +14,22 @@ pub fn getRootDir() !Dir {
     return try std.fs.cwd().makeOpenPath(root_path, OpenDirOptions{});
 }
 
+/// Save Todo to a file
 pub fn save(file_name: []const u8, todo: Todo) !void {
     var dir = try getRootDir();
     const file = try dir.createFile(file_name, CreateFlags{});
-    _ = try file.write("Amazing test this is");
+    var buffer: [100 * 100]u8 = undefined;
+    var string = todo.str(buffer);
+    _ = try file.write(string);
 }
 
-// TODO: reader. Should return Todo
-pub fn read() void {
+/// Parse Todo from file
+pub fn read(allocator: *Allocator, file_name: []const u8) !Todo {
+    var buffer: [100 * 100]u8 = undefined;
+    var dir = try.getRootDir();
+    const file = try dir.openFile(file_name, OpenFlags {});
+    const content = try file.reader().read(buffer);
+    return try Todo.init_str(allocator, content);
 }
 
 pub fn delete(file_name: []const u8, self: Self) Dir.DeleteFileError!void {

@@ -4,46 +4,16 @@ const Date = @import("date.zig");
 const Task = @import("task.zig");
 
 const Self = @This();
+pub const Tasks = std.SinglyLinkedList(Task);
 
-pub const Node = struct {
-    next: ?*Node,
-    current: Task
-};
-
-pub const TodoIterator = struct {
-    node: ?*const Node,
-
-    pub fn next(self: *TodoIterator) ?*const Node {
-        if (self.node) |val| {
-            const result = val;
-            self.node = val.next;
-            return result;
-        } else {
-            return null;
-        }
-    }
-};
-
-// A linked list can be empty
-first_node: ?*Node,
-last_node: ?*Node,
-size: usize,
 alloc: *Allocator,
+tasks: Tasks,
 
 pub fn init(allocator: *Allocator) Self {
     return Self {
-        .first_node = null,
-        .last_node = null,
-        .size = 0,
         .alloc = allocator,
+        .tasks = Tasks{},
     };
-}
-
-pub fn close(self: *Self) void {
-    var it = self.iter();
-    while (it.next()) |node| {
-        self.alloc.destroy(node);
-    } 
 }
 
 pub fn init_str(allocator: *Allocator, buffer: []const u8) !Self {
@@ -73,52 +43,47 @@ pub fn init_str(allocator: *Allocator, buffer: []const u8) !Self {
     return todo;
 }
 
+pub fn close(self: Self) void {
+    var it = self.tasks.first;
+    while (it) |node| {
+        it = node.next;
+        self.alloc.destroy(node);
+    }
+}
+
+/// Adds a new task
+/// Allocates memory
 pub fn add(self: *Self, task: Task) !void {
-    var node = try self.alloc.create(Node);
-    node.* = Node {
-        .next = null,
-        .current = task,
+    var node = try self.alloc.create(Tasks.Node);
+    node.* = Tasks.Node {
+        .data = task,
     };
-
-    if (self.first_node) |n| {
-        self.last_node.?.next = node;
-        self.last_node = node;
-    } else {
-        self.first_node = node;
-        self.last_node = node;
-    }
-
-    self.size += 1;
+    self.tasks.prepend(node);
 }
 
-pub fn iter(self: Self) TodoIterator {
-    if (self.size == 0) {
-        return TodoIterator {
-            .node = null,
-        };
-    }
-
-    return TodoIterator {
-        .node = self.first_node,
-    };
+pub fn strAlloc(self: Self, allocator: *Allocator) ![:0]u8 {
+    var buf = try allocator.alloc(u8, 100 * self.tasks.len());
+    return self.str(buf);
 }
 
-pub fn str(self: Self, allocator: *Allocator) ![:0]u8 {
-    var todo_iter = self.iter();
-    var buf = try allocator.alloc(u8, 100 * self.size);
+pub fn str(self: Self, buffer: []u8) ![:0]u8 {
+    var todo_iter = self.tasks.first;
     var i: usize = 0;
     var tail: usize = 0;
-    while (i < self.size) : (i += 1) {
-        var line = buf[tail .. (1+i)*100];
-        const task = todo_iter.next().?.current;
+    const size = self.tasks.len();
+    while (i < size) : (i += 1) {
+        var line = buffer[tail .. (1+i)*100];
+        const task = todo_iter.?.data;
+
         const completed: i64 = if (task.completed) 1 else 0;
-        const printed = try std.fmt.bufPrint(line, "{}|{}|{}\n", .{task.content, task.due.dateToEpoch(), completed});
+        const printed = try std.fmt.bufPrint(line, "{s}|{d}|{d}\n", .{task.content, task.due.dateToEpoch(), completed});
         tail = tail + printed.len;
+        todo_iter = todo_iter.?.next;
     }
 
-    buf[tail] = 0;
+    buffer[tail] = 0;
 
-    return buf[0..tail:0];
+    return buffer[0..tail:0];
 }
 
 test "Basic" {
@@ -142,11 +107,10 @@ test "Basic" {
         .completed = true,
         });
 
-    const string = try todo.str(alloc);
+    const string = try todo.strAlloc(alloc);
     defer alloc.free(string);
 
-    const expected = "Chemistry assignment|1617840000|0\nMath assignment|1619136000|1\n";
-    std.testing.expectEqual(expected.len, string.len);
+    const expected = "Math assignment|1619136000|1\nChemistry assignment|1617840000|0\n";
     std.testing.expect(std.mem.eql(u8, string, expected));
 }
 
@@ -156,11 +120,11 @@ test "Loading" {
     var result = try init_str(alloc, string);
     defer result.close();
 
-    std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.first_node.?.current.content));
-    std.testing.expectEqual(Date { .days = 18725 }, result.first_node.?.current.due);
-    std.testing.expectEqual(false, result.first_node.?.current.completed);
+    std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.tasks.first.?.next.?.data.content));
+    std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.next.?.data.due);
+    std.testing.expectEqual(false, result.tasks.first.?.next.?.data.completed);
 
-    std.testing.expect(std.mem.eql(u8, "Math assignment", result.last_node.?.current.content));
-    std.testing.expectEqual(Date { .days = 18725 + 15}, result.last_node.?.current.due);
-    std.testing.expectEqual(true, result.last_node.?.current.completed);
+    std.testing.expect(std.mem.eql(u8, "Math assignment", result.tasks.first.?.data.content));
+    std.testing.expectEqual(Date { .days = 18725 + 15}, result.tasks.first.?.data.due);
+    std.testing.expectEqual(true, result.tasks.first.?.data.completed);
 }
