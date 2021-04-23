@@ -12,7 +12,7 @@ const Self = @This();
 const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-pub const Months = enum {
+pub const Month = enum {
     January=1,
     February,
     March,
@@ -27,13 +27,13 @@ pub const Months = enum {
     December,
 };
 
-pub fn nameToMonth(name: []const u8) DateError!Months {
+pub fn nameToMonth(name: []const u8) DateError!Month {
     const names_full = [_][:0]const u8{"january", "february", "march", "april", "may", "june", 
         "july", "august", "september", "october", "november", "december"};
     if (name.len < 3) return DateError.AmbiguousAbbr;
     inline for (names_full) |month_name, index| {
         if (std.mem.startsWith(u8, month_name, name)) {
-            return @intToEnum(Months, @intCast(u4, index + 1));
+            return @intToEnum(Month, @intCast(u4, index + 1));
         }
     }
     return DateError.InvalidMonth;
@@ -233,7 +233,7 @@ fn sum(list: []const i64) i64 {
 
 test "date.nameToMonth" {
     const name = "sept";
-    testing.expectEqual(Months.September, try nameToMonth(name));
+    testing.expectEqual(Month.September, try nameToMonth(name));
 }
 
 test "date.init" {
@@ -360,7 +360,7 @@ test "date.Get year, month, and day" {
     testing.expectEqual(@as(i64, 2021), date.year());
     testing.expectEqual(@as(i64, 4), date.month());
     testing.expectEqual(@as(i64, 8), date.day());
-    testing.expectEqual(Months.April, @intToEnum(Months, @intCast(u4, date.month())));
+    testing.expectEqual(Month.April, @intToEnum(Month, @intCast(u4, date.month())));
 }
 
 test "date.Timezones" {

@@ -20,7 +20,7 @@ pub fn save(file_name: []const u8, todo: Todo) !void {
     var dir = try getRootDir();
     const file = try dir.createFile(file_name, CreateFlags{});
     var buffer: [config.MAX_LINE * 100]u8 = undefined;
-    var string = todo.str(buffer);
+    var string = try todo.str(buffer[0..]);
     _ = try file.write(string);
 }
 

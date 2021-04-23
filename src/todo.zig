@@ -43,7 +43,7 @@ pub fn init_str(allocator: *Allocator, buffer: []const u8) !Self {
     return todo;
 }
 
-pub fn close(self: Self) void {
+pub fn deinit(self: Self) void {
     var it = self.tasks.first;
     while (it) |node| {
         it = node.next;
@@ -95,7 +95,7 @@ pub fn str(self: Self, buffer: []u8) ![:0]u8 {
 test "Basic" {
     const alloc = std.testing.allocator;
     var todo = Self.init(alloc);
-    defer todo.close();
+    defer todo.deinit();
 
     try todo.add(Task {
         .content = "Chemistry assignment",
@@ -124,7 +124,7 @@ test "Loading" {
     const alloc = std.testing.allocator;
     const string = "Chemistry assignment|1617840000|0\nMath assignment|1619136000|1\n";
     var result = try init_str(alloc, string);
-    defer result.close();
+    defer result.deinit();
 
     std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.tasks.first.?.next.?.data.content));
     std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.next.?.data.due.?);
