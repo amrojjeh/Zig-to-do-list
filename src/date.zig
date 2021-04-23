@@ -12,6 +12,31 @@ const Self = @This();
 const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+pub const DateError = error {
+    InvalidMonth,
+    InvalidDay,
+};
+
+pub fn init(y: i64, m: i64, d: i64) DateError!Self {
+    if (m > 12 or m < 1) {
+        return DateError.InvalidMonth;
+    }
+
+    const m_index = @intCast(usize, m);
+
+    const months = if (isLeapYear(y)) leap_year_months else normal_year_months;
+
+    if (d > months[m_index - 1] or d < 1) {
+        return DateError.InvalidDay;
+    }
+
+    const days = if (m_index == 1) d - 1 else d - 1 + sum(months[0..m_index - 1]);
+
+    return Self {
+        .days = days,
+    };
+}
+
 /// Get the current date
 pub fn now() Self {
     return epochToDate(time.timestamp());
@@ -178,18 +203,39 @@ fn sum(list: []const i64) i64 {
     return s;
 }
 
-test "Sum" {
+test "date.init" {
+    {
+        const date = try init(1970, 1, 1);
+        const expected = Self {};
+        testing.expectEqual(expected, date);
+    }
+
+    {
+        const date = try init(1970, 2, 2);
+        const expected = Self { .days = 31 + 1 };
+        testing.expectEqual(expected, date);
+    }
+
+    {
+        testing.expectError(DateError.InvalidMonth, init(1970, 13, 2));
+        testing.expectError(DateError.InvalidMonth, init(1970, 0, 2));
+        testing.expectError(DateError.InvalidDay, init(1970, 1, 32));
+        testing.expectError(DateError.InvalidDay, init(1970, 1, 0));
+    }
+}
+
+test "date.Sum" {
     const list = [_]i64{1, 2, 3, 4, 5};
     const wow = sum(list[0..1]);
     testing.expectEqual(wow, 1);
 }
 
-test "Index before sum exceeds value" {
+test "date.Index before sum exceeds value" {
     const list = [_]i64{1, 2, 3, 4, 5};
     testing.expectEqual(@as(usize, 1), indexBeforeSumExceedsValue(2, list[0..]));
 }
 
-test "Epoch To Date" {
+test "date.Epoch To Date" {
     const epoch: i64 = 1617889448;
     const date = epochToDate(epoch);
 
@@ -203,7 +249,7 @@ test "Epoch To Date" {
     testing.expectEqual(expectedDate, date);
 }
 
-test "Normalize" {
+test "date.Normalize" {
     {
         const date = Self {
             .days = 18725,
@@ -234,7 +280,7 @@ test "Normalize" {
     }
 }
 
-test "Date to epoch" {
+test "date.Date to epoch" {
     const date = Self {
         .days = 18725,
         .hours = 13,
@@ -245,7 +291,7 @@ test "Date to epoch" {
     testing.expectEqual(expectedEpoch, date.dateToEpoch());
 }
 
-test "Adding date" {
+test "date.Adding date" {
     const date = Self {
         .days = 18725,
         .hours = 13,
@@ -270,7 +316,7 @@ test "Adding date" {
     testing.expectEqual(expected, result);
 }
 
-test "Get year, month, and day" {
+test "date.Get year, month, and day" {
     const date = Self {
         .days = 18725,
         .hours = 13,
@@ -283,7 +329,7 @@ test "Get year, month, and day" {
     testing.expectEqual(@as(i64, 8), date.day());
 }
 
-test "Timezones" {
+test "date.Timezones" {
     const date = Self {
         .days = 18725,
         .hours = 1,
