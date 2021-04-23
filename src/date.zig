@@ -12,6 +12,21 @@ const Self = @This();
 const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+pub const Months = enum {
+    January=1,
+    February,
+    March,
+    April,
+    May,
+    June,
+    July,
+    August,
+    September,
+    October,
+    November,
+    December,
+};
+
 pub const DateError = error {
     InvalidMonth,
     InvalidDay,
@@ -116,7 +131,7 @@ pub fn month(self: Self) i64 {
     const months = self.yearMonths();
     const m = 1 + indexBeforeSumExceedsValue(self.dayOfYear(), months);
 
-    return @intCast(i64, m); 
+    return @intCast(u4, m); 
 }
 
 /// Assumes normalized date
@@ -327,6 +342,7 @@ test "date.Get year, month, and day" {
     testing.expectEqual(@as(i64, 2021), date.year());
     testing.expectEqual(@as(i64, 4), date.month());
     testing.expectEqual(@as(i64, 8), date.day());
+    testing.expectEqual(Months.April, @intToEnum(Months, @intCast(u4, date.month())));
 }
 
 test "date.Timezones" {
