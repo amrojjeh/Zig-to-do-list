@@ -27,9 +27,22 @@ pub const Months = enum {
     December,
 };
 
+pub fn nameToMonth(name: []const u8) DateError!Months {
+    const names_full = [_][:0]const u8{"january", "february", "march", "april", "may", "june", 
+        "july", "august", "september", "october", "november", "december"};
+    if (name.len < 3) return DateError.AmbiguousAbbr;
+    inline for (names_full) |month_name, index| {
+        if (std.mem.startsWith(u8, month_name, name)) {
+            return @intToEnum(Months, @intCast(u4, index + 1));
+        }
+    }
+    return DateError.InvalidMonth;
+}
+
 pub const DateError = error {
     InvalidMonth,
     InvalidDay,
+    AmbiguousAbbr,
 };
 
 pub fn init(y: i64, m: i64, d: i64) DateError!Self {
@@ -216,6 +229,11 @@ fn sum(list: []const i64) i64 {
         s += val;
     }
     return s;
+}
+
+test "date.nameToMonth" {
+    const name = "sept";
+    testing.expectEqual(Months.September, try nameToMonth(name));
 }
 
 test "date.init" {
