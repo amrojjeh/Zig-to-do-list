@@ -76,7 +76,13 @@ pub fn str(self: Self, buffer: []u8) ![:0]u8 {
         const task = todo_iter.?.data;
 
         const completed: i64 = if (task.completed) 1 else 0;
-        const printed = try std.fmt.bufPrint(line, "{s}|{d}|{d}\n", .{task.content, task.due.dateToEpoch(), completed});
+        const printed = blk: {
+            if (task.due) |d| {
+                break :blk try std.fmt.bufPrint(line, "{s}|{d}|{d}\n", .{task.content, d.dateToEpoch(), completed});
+            } else {
+                break :blk try std.fmt.bufPrint(line, "{s}|{}|{d}\n", .{task.content, task.due, completed});
+            }
+        };
         tail = tail + printed.len;
         todo_iter = todo_iter.?.next;
     }
@@ -121,10 +127,10 @@ test "Loading" {
     defer result.close();
 
     std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.tasks.first.?.next.?.data.content));
-    std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.next.?.data.due);
+    std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.next.?.data.due.?);
     std.testing.expectEqual(false, result.tasks.first.?.next.?.data.completed);
 
     std.testing.expect(std.mem.eql(u8, "Math assignment", result.tasks.first.?.data.content));
-    std.testing.expectEqual(Date { .days = 18725 + 15}, result.tasks.first.?.data.due);
+    std.testing.expectEqual(Date { .days = 18725 + 15}, result.tasks.first.?.data.due.?);
     std.testing.expectEqual(true, result.tasks.first.?.data.completed);
 }

@@ -1,5 +1,5 @@
 const Date = @import("date.zig");
 
 content: []const u8,
-due: Date,
+due: ?Date,
 completed: bool,
