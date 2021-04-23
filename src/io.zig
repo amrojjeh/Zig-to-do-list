@@ -1,4 +1,5 @@
 const std = @import("std");
+const config = @import("config.zig");
 const Todo = @import("todo.zig");
 
 const Dir = std.fs.Dir;
@@ -18,14 +19,14 @@ pub fn getRootDir() !Dir {
 pub fn save(file_name: []const u8, todo: Todo) !void {
     var dir = try getRootDir();
     const file = try dir.createFile(file_name, CreateFlags{});
-    var buffer: [100 * 100]u8 = undefined;
+    var buffer: [config.MAX_LINE * 100]u8 = undefined;
     var string = todo.str(buffer);
     _ = try file.write(string);
 }
 
 /// Parse Todo from file
 pub fn read(allocator: *Allocator, file_name: []const u8) !Todo {
-    var buffer: [100 * 100]u8 = undefined;
+    var buffer: [config.MAX_LINE * 100]u8 = undefined;
     var dir = try.getRootDir();
     const file = try dir.openFile(file_name, OpenFlags {});
     const content = try file.reader().read(buffer);
