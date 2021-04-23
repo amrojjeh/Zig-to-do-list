@@ -17,12 +17,12 @@ pub fn main() !void {
 
     const new_task = try parser.parseTask(buffer[0..], args[1..]);
 
-    var todo = Todo.init(allocator);
+    var todo = (try io.read(allocator)) orelse Todo.init(allocator);
     defer todo.deinit();
 
     try todo.add(new_task);
 
-    try io.save("todo.todo", todo);
+    try io.save(todo);
 }
 
 pub fn help() void {

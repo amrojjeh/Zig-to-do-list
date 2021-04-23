@@ -16,24 +16,27 @@ pub fn init(allocator: *Allocator) Self {
     };
 }
 
-pub fn init_str(allocator: *Allocator, buffer: []const u8) !Self {
+pub fn init_str(allocator: *Allocator, buffer: [:0]const u8) !Self {
     var todo = init(allocator);
-
     var lines = std.mem.tokenize(buffer, "\n");
     while (lines.next()) |line| {
         var content: []const u8 = undefined;
-        var due: Date = undefined;
+        var due: ?Date = null;
         var completed: bool = undefined;
         var tokens = std.mem.tokenize(line, "|");
         var i: u8 = 0;
         while (tokens.next()) |token| : (i += 1) {
             switch (i) {
                 0 => content = token,
-                1 => due = Date.epochToDate(try std.fmt.parseInt(i64, token, 10)),
+                1 => {
+                    const epoch = std.fmt.parseInt(i64, token, 10) catch null;
+                    if (epoch) |val| due = Date.epochToDate(val);
+                },
                 2 => completed = (try std.fmt.parseInt(u8, token, 10)) == 1,
                 else => return error.TooManySplitters,
             }
         }
+
         try todo.add(Task {
             .content = content,
             .due = due,
