@@ -16,27 +16,30 @@ pub fn init(allocator: *Allocator) Self {
     };
 }
 
+/// Assumes valid input
 pub fn init_str(allocator: *Allocator, buffer: [:0]const u8) !Self {
+    const Helpers = struct {
+        pub fn getDue(token: []const u8) ?Date {
+            const epoch = std.fmt.parseInt(i64, token, 10) catch null;
+            if (epoch) |val|
+                return Date.epochToDate(val)
+            else
+                return null;
+        }
+
+        pub fn getCompleted(token: []const u8) !bool {
+            const val = try std.fmt.parseInt(u8, token, 10);
+            return val != 0;
+        }
+    };
+
     var todo = init(allocator);
     var lines = std.mem.tokenize(buffer, "\n");
     while (lines.next()) |line| {
-        var content: []const u8 = undefined;
-        var due: ?Date = null;
-        var completed: bool = undefined;
         var tokens = std.mem.tokenize(line, "|");
-        var i: u8 = 0;
-        while (tokens.next()) |token| : (i += 1) {
-            switch (i) {
-                0 => content = token,
-                1 => {
-                    const epoch = std.fmt.parseInt(i64, token, 10) catch null;
-                    if (epoch) |val| due = Date.epochToDate(val);
-                },
-                2 => completed = (try std.fmt.parseInt(u8, token, 10)) == 1,
-                else => return error.TooManySplitters,
-            }
-        }
-
+        const content: []const u8 = tokens.next().?;
+        const due: ?Date = Helpers.getDue(tokens.next().?);
+        const completed: bool = try Helpers.getCompleted(tokens.next().?);
         try todo.add(Task {
             .content = content,
             .due = due,
