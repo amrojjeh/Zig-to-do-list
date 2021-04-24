@@ -17,6 +17,7 @@ pub fn isOutOfArgs(self: Self) bool {
 }
 
 pub fn peekNext(self: Self) ?[:0]const u8 {
+    if (self.isOutOfArgs()) return null;
     return self.args[self.next_arg];
 }
 
