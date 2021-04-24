@@ -12,11 +12,10 @@ const ParseError = Lexer.TokenError || error {
     ExpectedDayToken,
 };
 
-pub fn parseTask(buffer: []u8, raw_args: []const [:0]const u8) ParseError!Task {
-    var args = Arguments { .args = raw_args, };
-    var lex = Lexer { .args = &args, };
+pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
+    var lex = Lexer { .args = args, };
 
-    const content = readContent(buffer, &args);
+    const content = readContent(buffer, args);
 
     var due: ?Date = null;
 
@@ -107,7 +106,10 @@ test "parser.parseTask" {
     {
         // TODO: Add the date stuff as well
         const raw_args = [_][:0]const u8 {"Conic", "Sections", "exam", ";", "jan", "2"};
-        const task = try parseTask(buffer[0..], raw_args[0..]);
+        var args = Arguments {
+            .args = raw_args[0..],
+        };
+        const task = try parseTask(buffer[0..], &args);
 
         testing.expectEqualSlices(u8, "Conic Sections exam", task.content);
         testing.expectEqual(Date {.days = 1,}, task.due.?);
