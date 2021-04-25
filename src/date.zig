@@ -153,6 +153,11 @@ pub fn day(self: Self) i64 {
     return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
 }
 
+/// Returns the name of the month
+pub fn monthName(self: Self) []const u8 {
+    return @tagName(@intToEnum(Month, @intCast(u4, self.month())));
+}
+
 /// Obviously not for adding dates.
 /// Rather, it's to add a duration to date.
 /// Example: add an hour for one hour later
@@ -212,6 +217,15 @@ pub fn utc(self: Self, hours: i64, minutes: i64) Self {
         });
 }
 
+pub fn format(
+    self: Self,
+    comptime fmt: []const u8,
+    options: std.fmt.FormatOptions,
+    writer: anytype
+) !void {
+    try writer.print("{s} {d}, {d}", .{self.monthName(), self.day(), self.year()});
+}
+
 fn indexBeforeSumExceedsValue(val: i64, list: []const i64) usize {
     var s: i64 = 0;
     for (list) |v, i| {
@@ -229,6 +243,17 @@ fn sum(list: []const i64) i64 {
         s += val;
     }
     return s;
+}
+
+test "date.monthName" {
+    const date = Self {
+        .days = 18725,
+        .hours = 13,
+        .minutes = 44,
+        .seconds = 08,
+    };
+
+    testing.expectEqualSlices(u8, "April", date.monthName());
 }
 
 test "date.nameToMonth" {
