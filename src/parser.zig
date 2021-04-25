@@ -36,6 +36,7 @@ fn month(due: *?Date, lex: *Lexer) ParseError!void {
             else => return ParseError.MonthMustComeFirst,
         }
     }
+    std.debug.print("line 33 parser.zig: current year -> {d}\n", .{due.*.?.year()});
     try day(due, lex);
 }
 
@@ -104,7 +105,6 @@ test "parser.readContent" {
 test "parser.parseTask" {
     var buffer: [100]u8 = undefined;
     {
-        // TODO: Add the date stuff as well
         const raw_args = [_][:0]const u8 {"Conic", "Sections", "exam", ";", "jan", "2"};
         var args = Arguments {
             .args = raw_args[0..],

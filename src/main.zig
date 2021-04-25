@@ -1,9 +1,5 @@
 const std = @import("std");
-const io = @import("io.zig");
 const cli = @import("cli.zig");
-const parser = @import("parser.zig");
-const config = @import("config.zig");
-const Todo = @import("todo.zig");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -11,18 +7,9 @@ pub fn main() !void {
 
     const allocator = &arena.allocator;
 
-    var buffer: [config.MAX_LINE]u8 = undefined;
-
     const args = try std.process.argsAlloc(allocator);
 
-    const new_task = try parser.parseTask(buffer[0..], args[1..]);
-
-    var todo = (try io.read(allocator)) orelse Todo.init(allocator);
-    defer todo.deinit();
-
-    try todo.add(new_task);
-
-    try io.save(todo);
+    try cli.execute(allocator, args[1..]);
 }
 
 pub fn help() void {

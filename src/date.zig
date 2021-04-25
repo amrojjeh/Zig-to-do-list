@@ -58,7 +58,7 @@ pub fn init(y: i64, m: i64, d: i64) DateError!Self {
         return DateError.InvalidDay;
     }
 
-    const days = if (m_index == 1) d - 1 else d - 1 + sum(months[0..m_index - 1]);
+    const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m_index == 1) d - 1 else d - 1 + sum(months[0..m_index - 1]);
 
     return Self {
         .days = days,
