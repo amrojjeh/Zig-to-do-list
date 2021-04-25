@@ -50,7 +50,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
         }
         var it = todo.tasks.first;
         while (it) |node| : (it = node.next) {
-            try out.print("{any}\n", .{node.data});
+            try out.print("{s}{any}{s}\n", .{Styles.NORMAL, node.data, Styles.RESET});
         }
     } else {
         try H.noTasks(out);
