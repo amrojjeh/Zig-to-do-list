@@ -14,6 +14,8 @@ const Styles = struct {
     pub const SUCCESS = "\x1B[32m" ++ BOLD;
     pub const NORMAL = "\x1B[37m" ++ BOLD;
 
+    pub const STRIKE = "\x1B[9m";
+
     pub const RESET = "\x1B[0m";
 };
 

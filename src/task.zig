@@ -13,9 +13,9 @@ pub fn format(
     options: std.fmt.FormatOptions,
     writer: anytype
 ) !void {
-    const completed_str = if (self.completed) "[X]" else "[ ]";
+    const completed_str = if (self.completed) "✅" else "❌";
     if (self.due) |date| {
-        try writer.print("{s} {s} due {any}", .{completed_str, self.content, date});
+        try writer.print("{s} {s} 📅 {any}", .{completed_str, self.content, date});
     } else {
         try writer.print("{s} {s}", .{completed_str, self.content});
     }
