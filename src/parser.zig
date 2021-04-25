@@ -36,7 +36,6 @@ fn month(due: *?Date, lex: *Lexer) ParseError!void {
             else => return ParseError.MonthMustComeFirst,
         }
     }
-    std.debug.print("line 33 parser.zig: current year -> {d}\n", .{due.*.?.year()});
     try day(due, lex);
 }
 
