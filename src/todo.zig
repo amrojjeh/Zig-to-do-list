@@ -67,6 +67,25 @@ pub fn add(self: *Self, task: Task) !void {
     self.tasks.prepend(node);
 }
 
+/// Removes a task. Index based, starts from 0.
+/// deinit will NOT deallocate this memory.
+pub fn remove(self: *Self, index: u32) ?*Tasks.Node {
+    if (index == 0) {
+        return self.tasks.popFirst();
+    }
+
+    var it = self.tasks.first;
+    var m_index: u32 = 0;
+    while (it) |node| : (it = node.next) {
+        if (m_index == index - 1) {
+            return node.removeNext();
+        }
+        m_index += 1;
+    }
+
+    return null;
+}
+
 pub fn strAlloc(self: Self, allocator: *Allocator) ![:0]u8 {
     var buf = try allocator.alloc(u8, 100 * self.tasks.len());
     return self.str(buf);
@@ -104,6 +123,14 @@ test "Basic" {
     defer todo.deinit();
 
     try todo.add(Task {
+        .content = "Remove me",
+        .due = Date {
+            .days = 18725 + 30,
+            },
+        .completed = false,
+        });
+
+    try todo.add(Task {
         .content = "Chemistry assignment",
         .due = Date {
             .days = 18725,
@@ -119,10 +146,14 @@ test "Basic" {
         .completed = true,
         });
 
+    const removed = todo.remove(2);
+    defer alloc.destroy(removed.?);
+
     const string = try todo.strAlloc(alloc);
     defer alloc.free(string);
 
     const expected = "Math assignment|1619136000|1\nChemistry assignment|1617840000|0\n";
+    std.debug.print("\n{s}\n", .{string});
     std.testing.expect(std.mem.eql(u8, string, expected));
 }
 
