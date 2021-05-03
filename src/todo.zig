@@ -69,13 +69,13 @@ pub fn add(self: *Self, task: Task) !void {
 
 /// Removes a task. Index based, starts from 0.
 /// deinit will NOT deallocate this memory.
-pub fn remove(self: *Self, index: u32) ?*Tasks.Node {
+pub fn remove(self: *Self, index: usize) ?*Tasks.Node {
     if (index == 0) {
         return self.tasks.popFirst();
     }
 
     var it = self.tasks.first;
-    var m_index: u32 = 0;
+    var m_index: usize = 0;
     while (it) |node| : (it = node.next) {
         if (m_index == index - 1) {
             return node.removeNext();
