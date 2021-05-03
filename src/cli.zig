@@ -19,22 +19,66 @@ const Styles = struct {
     pub const RESET = "\x1B[0m";
 };
 
+const Command = struct {
+    names: []const [:0]const u8,
+    commandFn: fn (*Allocator, *Arguments) anyerror!void,
+};
+
+const Commands = &[_]Command {
+    Command {
+        .names = &[_][:0]const u8{"list", "l"},
+        .commandFn = list,
+    },
+    Command {
+        .names = &[_][:0]const u8{"remove", "rem", "r", "erase"},
+        .commandFn = removeTask,
+    },
+};
+
 pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
     var args = Arguments {
         .args = raw_args,
     };
 
     if (args.peek()) |arg| {
-        var buffer: [20]u8 = undefined;
-        std.mem.copy(u8, buffer[0..], arg[0..arg.len + 1]);
-        const str = buffer[0..arg.len:0];
-        toLower(str);
-        if (std.mem.eql(u8, str, "list")) {
-            try list(alloc, &args);
+        if (arg[0] == '-') {
+            try runCommand(alloc, &args);
         } else {
             try addTask(alloc, &args);
         }
+    } else {
+        try noArgs();
     }
+}
+
+fn runCommand(alloc: *Allocator, args: *Arguments) !void {
+    const arg = args.peek().?;
+    var buffer: [20]u8 = undefined;
+    std.mem.copy(u8, &buffer, arg[0..arg.len]);
+    const str = buffer[1..arg.len]; // Remove the "-"
+    toLower(str);
+    var commandRan = false;
+    inline for (Commands) |command| {
+        inline for (command.names) |n| {
+            if (std.mem.eql(u8, str, n)) {
+                commandRan = true;
+                try command.commandFn(alloc, args);
+            }
+        }
+    }
+    if (!commandRan) {
+        try commandDoesNotExist(arg);
+    }
+}
+
+fn commandDoesNotExist(commandName: []const u8) !void {
+    const out = std.io.getStdOut().writer();
+    try out.print("{s}Command {s} does not exist.{s}\n", .{Styles.FAIL, commandName, Styles.RESET});
+}
+
+fn noArgs() !void {
+    const out = std.io.getStdOut().writer();
+    try out.print("{s}No arguments passed. Running help command...{s}\n", .{Styles.FAIL, Styles.RESET});
 }
 
 fn list(alloc: *Allocator, args: *Arguments) !void {
@@ -51,13 +95,14 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
             try H.noTasks(out);
         }
         var it = todo.tasks.first;
+        var index: usize = 1;
         while (it) |node| : (it = node.next) {
-            try out.print("{s}{any}{s}\n", .{Styles.NORMAL, node.data, Styles.RESET});
+            try out.print("{s}{d}. {any}{s}\n", .{Styles.NORMAL, index, node.data, Styles.RESET});
+            index += 1;
         }
     } else {
         try H.noTasks(out);
     }
-
 }
 
 fn addTask(alloc: *Allocator, args: *Arguments) !void {
@@ -80,4 +125,34 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
     try io.save(todo);
 
     try out.print("{s}Added task.{s}\n", .{Styles.SUCCESS, Styles.RESET});
+}
+
+/// Removes a task. First task is index 1.
+fn removeTask(alloc: *Allocator, args: *Arguments) !void {
+    const print = std.io.getStdOut().writer().print;
+    _ = args.next(); // Skip the argument
+    const str_num = args.next() orelse "1";
+    const number = std.fmt.parseInt(usize, str_num, 10) catch |err| {
+        try print("{s}{s} is not a number.{s}\n", .{Styles.FAIL, str_num, Styles.RESET});
+        return;
+    };
+
+    var todo = (try io.read(alloc)) orelse {
+        try print("{s}Cannot delete tasks. Todo list is empty.{s}\n", .{Styles.FAIL, Styles.RESET});
+        return;
+    };
+
+    if (number < 1) {
+        try print("{s}Index cannot be less than 1.{s}\n", .{Styles.FAIL, Styles.RESET});
+        return;
+    }
+
+    const removed = todo.remove(number - 1);
+
+    if (removed) |r| {
+        defer alloc.destroy(r);
+        try print("{s}{any}{s}\n", .{Styles.SUCCESS, r.data, Styles.RESET});
+    }
+
+    try io.save(todo);
 }
