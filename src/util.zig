@@ -1,5 +1,4 @@
 const std = @import("std");
-const testing = std.testing;
 
 pub fn toLower(buffer: []u8) void {
     for (buffer) |*letter| {    
@@ -12,7 +11,7 @@ pub fn toLower(buffer: []u8) void {
 pub fn toUpper(buffer: []u8) void {
     for (buffer) |*letter| {
         if (isLower(letter.*)) {
-            letter.* = letter.* - 32;
+            letter.* = 32;
         }
     }
 }
@@ -35,7 +34,7 @@ test "util.toLower and util.toUpper" {
     std.mem.copy(u8, buffer[0..str.len], str);
     buffer[str.len] = 0;
     toLower(buffer[0..str.len]);
-    testing.expect(std.mem.eql(u8,"this is a test.", buffer[0..str.len:0]));
+    std.testing.expect(std.mem.eql(u8,"this is a test.", buffer[0..str.len:0]));
     toUpper(buffer[0..str.len]);
-    testing.expect(std.mem.eql(u8,"THIS IS A TEST.", buffer[0..str.len:0]));
+    std.testing.expect(std.mem.eql(u8,"THIS IS A TEST.", buffer[0..str.len:0]));
 }

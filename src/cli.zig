@@ -1,23 +1,14 @@
-usingnamespace @import("util.zig");
+usingnamespace @import("cli_helper.zig");
 
 const std = @import("std");
 const io = @import("io.zig");
 const config = @import("config.zig");
-const parser = @import("parser.zig");
+const parseTask = @import("parser.zig").parseTask;
 const Arguments = @import("args.zig");
 const Todo = @import("todo.zig");
+const toLower = @import("util.zig").toLower;
 const Allocator = std.mem.Allocator;
 
-const Styles = struct {
-    pub const BOLD = "\x1B[1m";
-    pub const FAIL = "\x1B[91m" ++ BOLD;
-    pub const SUCCESS = "\x1B[32m" ++ BOLD;
-    pub const NORMAL = "\x1B[37m" ++ BOLD;
-
-    pub const STRIKE = "\x1B[9m";
-
-    pub const RESET = "\x1B[0m";
-};
 
 const Command = struct {
     names: []const [:0]const u8,
@@ -29,9 +20,15 @@ const Commands = &[_]Command {
         .names = &[_][:0]const u8{"list", "l"},
         .commandFn = list,
     },
+
     Command {
         .names = &[_][:0]const u8{"remove", "rem", "r", "erase"},
         .commandFn = removeTask,
+    },
+
+    Command {
+        .names = &[_][:0]const u8{"complete", "comp", "c"},
+        .commandFn = completeTask,
     },
 };
 
@@ -57,93 +54,76 @@ fn runCommand(alloc: *Allocator, args: *Arguments) !void {
     std.mem.copy(u8, &buffer, arg[0..arg.len]);
     const str = buffer[1..arg.len]; // Remove the "-"
     toLower(str);
-    var commandRan = false;
     inline for (Commands) |command| {
         inline for (command.names) |n| {
             if (std.mem.eql(u8, str, n)) {
-                commandRan = true;
                 try command.commandFn(alloc, args);
+                return;
             }
         }
     }
-    if (!commandRan) {
-        try commandDoesNotExist(arg);
-    }
+    
+    try commandDoesNotExist(arg);
 }
 
 fn commandDoesNotExist(commandName: []const u8) !void {
-    const out = std.io.getStdOut().writer();
-    try out.print("{s}Command {s} does not exist.{s}\n", .{Styles.FAIL, commandName, Styles.RESET});
+    try printFail("Command {s} does not exist.", .{commandName});
 }
 
 fn noArgs() !void {
-    const out = std.io.getStdOut().writer();
-    try out.print("{s}No arguments passed. Running help command...{s}\n", .{Styles.FAIL, Styles.RESET});
+    try printFail("No arguments passed. Running help command...", .{});
 }
 
 fn list(alloc: *Allocator, args: *Arguments) !void {
-    const H = struct {
-        pub fn noTasks(out: anytype) !void {
-            try out.print("{s}There are no tasks available.{s}\n", .{Styles.SUCCESS, Styles.RESET});
+    const noTasks = struct {
+        pub fn noTasks() !void {
+            try printSuccess("There are no tasks available.", .{});
         }
-    };
-    const out = std.io.getStdOut().writer();
+    }.noTasks;
 
-    if (try io.read(alloc)) |todo| {
-        defer todo.deinit();
-        if (todo.tasks.len() == 0) {
-            try H.noTasks(out);
-        }
-        var it = todo.tasks.first;
-        var index: usize = 1;
-        while (it) |node| : (it = node.next) {
-            try out.print("{s}{d}. {any}{s}\n", .{Styles.NORMAL, index, node.data, Styles.RESET});
-            index += 1;
-        }
-    } else {
-        try H.noTasks(out);
+    const todo = (try io.read(alloc)) orelse {
+        try noTasks();
+        return;
+    }; defer todo.deinit();
+
+    if (todo.tasks.len() == 0) {
+        try noTasks();
+    }
+
+    var it = todo.tasks.first;
+    var index: usize = 1;
+    while (it) |node| : (it = node.next) {
+        try printNormal("{d}. {any}", .{index, node.data});
+        index += 1;
     }
 }
 
 fn addTask(alloc: *Allocator, args: *Arguments) !void {
-    const out = std.io.getStdOut().writer();
-
-    var todo: Todo = undefined;
-
-    if (try io.read(alloc)) |t| {
-        todo = t;
-    } else {
-        todo = Todo.init(alloc);
-    }
+    var todo: Todo = (try io.read(alloc)) orelse Todo.init(alloc);
     defer todo.deinit();
 
     var buffer: [config.MAX_LINE]u8 = undefined;
 
-    const task = try parser.parseTask(&buffer, args);
+    const task = try parseTask(&buffer, args);
     try todo.add(task);
 
     try io.save(todo);
 
-    try out.print("{s}Added task.{s}\n", .{Styles.SUCCESS, Styles.RESET});
+    try printSuccess("Added task.", .{});
 }
 
 /// Removes a task. First task is index 1.
 fn removeTask(alloc: *Allocator, args: *Arguments) !void {
-    const print = std.io.getStdOut().writer().print;
     _ = args.next(); // Skip the argument
-    const str_num = args.next() orelse "1";
-    const number = std.fmt.parseInt(usize, str_num, 10) catch |err| {
-        try print("{s}{s} is not a number.{s}\n", .{Styles.FAIL, str_num, Styles.RESET});
-        return;
-    };
+    const number = (try nextArgIndex(usize, args)) orelse return;
 
     var todo = (try io.read(alloc)) orelse {
-        try print("{s}Cannot delete tasks. Todo list is empty.{s}\n", .{Styles.FAIL, Styles.RESET});
+        try printFail("Cannot delete tasks. Todo list is empty.", .{});
         return;
-    };
+    }; defer todo.deinit();
 
     if (number < 1) {
-        try print("{s}Index cannot be less than 1.{s}\n", .{Styles.FAIL, Styles.RESET});
+        try printFail("Index cannot be less than 1.", .{});
         return;
     }
 
@@ -151,8 +131,23 @@ fn removeTask(alloc: *Allocator, args: *Arguments) !void {
 
     if (removed) |r| {
         defer alloc.destroy(r);
-        try print("{s}{any}{s}\n", .{Styles.SUCCESS, r.data, Styles.RESET});
+        try printSuccess("{any}", .{r.data});
+    } else {
+        try printFail("Task does not exist.", .{});
     }
+
+    try io.save(todo);
+}
+
+/// Completes a task
+fn completeTask(alloc: *Allocator, args: *Arguments) !void {
+    _ = args.next(); // Skips the -c argument
+    const number = (try nextArgIndex(usize, args)) orelse return;
+
+    var todo = (try io.read(alloc)) orelse {
+        try printFail("Could not complete task. Todo list is empty.", .{});
+        return;
+    }; defer todo.deinit();
 
     try io.save(todo);
 }
