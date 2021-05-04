@@ -67,22 +67,27 @@ pub fn add(self: *Self, task: Task) !void {
     self.tasks.prepend(node);
 }
 
-/// Removes a task. Index based, starts from 0.
+/// Removes a node. Index based, starts from 0.
 /// deinit will NOT deallocate this memory.
 pub fn remove(self: *Self, index: usize) ?*Tasks.Node {
     if (index == 0) {
         return self.tasks.popFirst();
     }
 
-    var it = self.tasks.first;
-    var m_index: usize = 0;
-    while (it) |node| : (it = node.next) {
-        if (m_index == index - 1) {
-            return node.removeNext();
-        }
-        m_index += 1;
-    }
+    const node =  self.get(index - 1) orelse return null;
+    return node.removeNext();
+}
 
+/// Returns a node based on index given. Starts from 0.
+pub fn get(self: *Self, index: usize) ?*Tasks.Node {
+    var it = self.tasks.first;
+    var i: usize = 0;
+    while (it) |node| : (it = node.next) {
+        if (i == index) {
+            return node;
+        }
+        i += 1;
+    }
     return null;
 }
 
@@ -153,7 +158,6 @@ test "Basic" {
     defer alloc.free(string);
 
     const expected = "Math assignment|1619136000|1\nChemistry assignment|1617840000|0\n";
-    std.debug.print("\n{s}\n", .{string});
     std.testing.expect(std.mem.eql(u8, string, expected));
 }
 

@@ -77,7 +77,7 @@ fn noArgs() !void {
 fn list(alloc: *Allocator, args: *Arguments) !void {
     const noTasks = struct {
         pub fn noTasks() !void {
-            try printSuccess("There are no tasks available.", .{});
+            try printNormal("There are no tasks available.", .{});
         }
     }.noTasks;
 
@@ -110,6 +110,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
     try io.save(todo);
 
     try printSuccess("Added task.", .{});
+    try printNormal("{any}", .{task});
 }
 
 /// Removes a task. First task is index 1.
@@ -127,19 +128,18 @@ fn removeTask(alloc: *Allocator, args: *Arguments) !void {
         return;
     }
 
-    const removed = todo.remove(number - 1);
-
-    if (removed) |r| {
-        defer alloc.destroy(r);
-        try printSuccess("{any}", .{r.data});
-    } else {
+    const removed = todo.remove(number - 1) orelse {
         try printFail("Task does not exist.", .{});
-    }
+        return;
+    }; defer alloc.destroy(removed);
+
+    try printSuccess("Removed task", .{});
+    try printNormal("{any}", .{removed.data});
 
     try io.save(todo);
 }
 
-/// Completes a task
+/// Completes a task. Index starts at 1.
 fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     _ = args.next(); // Skips the -c argument
     const number = (try nextArgIndex(usize, args)) orelse return;
@@ -148,6 +148,14 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
         try printFail("Could not complete task. Todo list is empty.", .{});
         return;
     }; defer todo.deinit();
+
+    var node = todo.get(number - 1) orelse {
+        try printFail("Task does not exist.", .{});
+        return;
+    };
+
+    node.data.completed = true;
+    try printNormal("{s}", .{node.data});
 
     try io.save(todo);
 }
