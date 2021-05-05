@@ -30,6 +30,11 @@ const Commands = &[_]Command {
         .names = &[_][:0]const u8{"complete", "comp", "c"},
         .commandFn = completeTask,
     },
+
+    Command {
+        .names = &[_][:0]const u8{"cleareverythingwithoutasking"}, // Clear all tasks, used for debug.
+        .commandFn = clearAllTasks,
+    },
 };
 
 pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
@@ -50,7 +55,7 @@ pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
 
 fn runCommand(alloc: *Allocator, args: *Arguments) !void {
     const arg = args.peek().?;
-    var buffer: [20]u8 = undefined;
+    var buffer: [40]u8 = undefined;
     std.mem.copy(u8, &buffer, arg[0..arg.len]);
     const str = buffer[1..arg.len]; // Remove the "-"
     util.toLower(str);
@@ -166,4 +171,11 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     try printNormal("{s}", .{node.data});
 
     try io.save(todo);
+}
+
+fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
+    const todo = Todo.init(alloc);
+    defer todo.deinit();
+    try io.save(todo);
+    try printSuccess("👍 Deleted all tasks.", .{});
 }
