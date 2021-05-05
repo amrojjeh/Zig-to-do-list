@@ -8,8 +8,10 @@ const Date = @import("date.zig");
 const testing = std.testing;
 
 const ParseError = Lexer.TokenError || error {
-    MonthMustComeFirst,
-    ExpectedDayToken,
+    ExpectedMonth,
+    MonthDoesNotExist,
+    DayOutOfRange,
+    ExpectedDay,
 };
 
 pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
@@ -17,9 +19,7 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
 
     const content = readContent(buffer, args);
 
-    var due: ?Date = null;
-
-    try month(&due, &lex);
+    const due = try monthDayFormat(&lex);
 
     return Task {
         .content = content,
@@ -28,25 +28,30 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
     };
 }
 
-fn month(due: *?Date, lex: *Lexer) ParseError!void {
-    const t = try lex.nextToken();
-    if (t) |val| {
-        switch (val) {
-            .month_name => |m| due.* = try Date.init(Date.now().year(), @intCast(i64, @enumToInt(m)), 1),
-            else => return ParseError.MonthMustComeFirst,
-        }
-    }
-    try day(due, lex);
+fn monthDayFormat(lex: *Lexer) ParseError!Date {
+    const m = try month(lex);
+    const d = try day(lex);
+    return try Date.init(Date.now().year(), m, d);
 }
 
-fn day(due: *?Date, lex: *Lexer) ParseError!void {
+fn month(lex: *Lexer) ParseError!i64 {
     const t = try lex.nextToken();
     if (t) |val| {
         switch (val) {
-            .number => |n| due.* = due.*.?.add(Date {.days = n - 1}),
-            else => return ParseError.ExpectedDayToken,
+            .month_name => |m| return @intCast(i64, @enumToInt(m)),
+            else => return ParseError.ExpectedMonth,
         }
-    }
+    } else return ParseError.ExpectedMonth;
+}
+
+fn day(lex: *Lexer) ParseError!i64 {
+    const t = try lex.nextToken();
+    if (t) |val| {
+        switch (val) {
+            .number => |n| return n,
+            else => return ParseError.ExpectedDay,
+        }
+    } else return ParseError.ExpectedDay;
 }
 
 /// Content is the task itself, the todo. It can end with a ";", or if there's nothing left

@@ -104,7 +104,15 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     var buffer: [config.MAX_LINE]u8 = undefined;
 
-    const task = try parseTask(&buffer, args);
+    const task = parseTask(&buffer, args) catch |err| {
+        switch (err) {
+            error.InvalidMonth => try printFail("Invalid month.", .{}),
+            error.InvalidDay => try printFail("Invalid day.", .{}),
+            error.AmbiguousAbbr => try printFail("Month name is ambiguous.", .{}),
+            else => try printFail("Something went wrong...", .{}),
+        }
+        return;
+    };
     try todo.add(task);
 
     try io.save(todo);
