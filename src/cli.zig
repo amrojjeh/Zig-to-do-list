@@ -6,7 +6,7 @@ const config = @import("config.zig");
 const parseTask = @import("parser.zig").parseTask;
 const Arguments = @import("args.zig");
 const Todo = @import("todo.zig");
-const toLower = @import("util.zig").toLower;
+const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 
 
@@ -53,7 +53,7 @@ fn runCommand(alloc: *Allocator, args: *Arguments) !void {
     var buffer: [20]u8 = undefined;
     std.mem.copy(u8, &buffer, arg[0..arg.len]);
     const str = buffer[1..arg.len]; // Remove the "-"
-    toLower(str);
+    util.toLower(str);
     inline for (Commands) |command| {
         inline for (command.names) |n| {
             if (std.mem.eql(u8, str, n)) {
@@ -86,7 +86,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
         return;
     }; defer todo.deinit();
 
-    if (todo.tasks.len() == 0) {
+    if (util.tailQueueLen(todo.tasks) == 0) {
         try noTasks();
     }
 

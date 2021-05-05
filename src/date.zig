@@ -217,6 +217,13 @@ pub fn utc(self: Self, hours: i64, minutes: i64) Self {
         });
 }
 
+/// If result > 0, then self > other, aka later
+/// if result == 0, then self == other, aka same
+/// else, result < other, aka sooner
+pub fn compare(self: Self, other: Self) i64 {
+    return self.dateToEpoch() - other.dateToEpoch();
+}
+
 pub fn format(
     self: Self,
     comptime fmt: []const u8,

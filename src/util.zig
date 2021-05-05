@@ -1,5 +1,12 @@
 const std = @import("std");
 
+pub fn tailQueueLen(tail_queue: anytype) usize {
+    var it = tail_queue.first;
+    var i: usize = 0;
+    while (it) |node| : ({it = node.next; i += 1;}) {}
+    return i;
+}
+
 pub fn toLower(buffer: []u8) void {
     for (buffer) |*letter| {    
         if (isUpper(letter.*)) {
