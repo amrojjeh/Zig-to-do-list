@@ -90,6 +90,17 @@ pub fn epochToDate(unix_time: i64) Self {
     };
 }
 
+/// Return the same time but without hours, minutes, or seconds
+/// Assumes the date is normalized
+pub fn flatten(self: Self) Self {
+    return Self {
+        .days = self.days,
+        .hours = 0,
+        .minutes = 0,
+        .seconds = 0,
+    };
+}
+
 /// Convert date to epoch time
 pub fn dateToEpoch(self: Self) i64 {
     const days = @intCast(i64, self.days);

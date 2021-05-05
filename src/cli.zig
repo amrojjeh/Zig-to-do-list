@@ -109,7 +109,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
             error.InvalidMonth => try printFail("Invalid month.", .{}),
             error.InvalidDay => try printFail("Invalid day.", .{}),
             error.AmbiguousAbbr => try printFail("Month name is ambiguous.", .{}),
-            else => try printFail("Something went wrong...", .{}),
+            else => try printFail("Something went wrong...{any}", .{err}),
         }
         return;
     };

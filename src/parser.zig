@@ -19,7 +19,7 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
 
     const content = readContent(buffer, args);
 
-    const due = try monthDayFormat(&lex);
+    const due = try root(&lex);
 
     return Task {
         .content = content,
@@ -28,17 +28,31 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
     };
 }
 
+fn root(lex: *Lexer) ParseError!?Date {
+    const t = try lex.peek();
+    if (t) |val| {
+        switch (val) {
+            .month_name => return try monthDayFormat(lex),
+            else => return ParseError.ExpectedMonth,
+        }
+    } else return noDueDate(lex);
+}
+
+fn noDueDate(lex: *Lexer) ?Date {
+    return null;
+}
+
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
     const m = try month(lex);
     const d = try day(lex);
-    const now = Date.now();
+    const now = Date.now().flatten();
     const default = try Date.init(now.year(), m, d);
-    const useSmartYearAssumption = now.compare(default) >= 0;// fancy way of saying increment year by 1
+    const useSmartYearAssumption = now.compare(default) > 0; // fancy way of saying increment year by 1
     return try Date.init(now.year() + if (useSmartYearAssumption) @as(i64, 1) else @as(i64, 0), m, d);
 }
 
 fn month(lex: *Lexer) ParseError!i64 {
-    const t = try lex.nextToken();
+    const t = try lex.next();
     if (t) |val| {
         switch (val) {
             .month_name => |m| return @intCast(i64, @enumToInt(m)),
@@ -48,7 +62,7 @@ fn month(lex: *Lexer) ParseError!i64 {
 }
 
 fn day(lex: *Lexer) ParseError!i64 {
-    const t = try lex.nextToken();
+    const t = try lex.next();
     if (t) |val| {
         switch (val) {
             .number => |n| return n,
