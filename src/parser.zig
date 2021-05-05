@@ -31,7 +31,10 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
     const m = try month(lex);
     const d = try day(lex);
-    return try Date.init(Date.now().year(), m, d);
+    const now = Date.now();
+    const default = try Date.init(now.year(), m, d);
+    const useSmartYearAssumption = now.compare(default) >= 0;// fancy way of saying increment year by 1
+    return try Date.init(now.year() + if (useSmartYearAssumption) @as(i64, 1) else @as(i64, 0), m, d);
 }
 
 fn month(lex: *Lexer) ParseError!i64 {
