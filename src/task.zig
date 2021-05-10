@@ -1,9 +1,11 @@
 const std = @import("std");
 const Date = @import("date.zig");
+const config = @import("config.zig");
 
 content: []const u8,
 due: ?Date,
 completed: bool,
+hashtags: ?[]const []const u8 = null,
 
 const Self = @This();
 
@@ -13,10 +15,21 @@ pub fn format(
     options: std.fmt.FormatOptions,
     writer: anytype
 ) !void {
-    const completed_str = if (self.completed) "✅" else "❌";
-    if (self.due) |date| {
-        try writer.print("{s} {s} 📅 {any}", .{completed_str, self.content, date});
-    } else {
-        try writer.print("{s} {s}", .{completed_str, self.content});
-    }
+    var buffer: [config.MAX_LINE]u8 = undefined;
+    try writer.print("{s}", .{self.str(&buffer, true)});
+}
+
+pub fn str(self: Self, buffer: []u8, checkmark: bool) ![]u8 {
+    const completed_str = blk: {
+        if (checkmark) {
+            break :blk if (self.completed) "✅ " else "❌ ";
+        } else break :blk "";
+    };
+
+    return blk: {
+        if (self.due) |date| {
+            break :blk try std.fmt.bufPrint(buffer, "{s}{s} 📅 {any}", .{completed_str, self.content, date});
+        }
+        break :blk try std.fmt.bufPrint(buffer, "{s} {s}", .{completed_str, self.content});
+    };
 }

@@ -121,7 +121,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
     try io.save(todo);
 
     try printSuccess("Added task.", .{});
-    try printNormal("{any}", .{task});
+    try printNormal("{s}", .{task.str(&buffer, false)});
 }
 
 /// Removes a task. First task is index 1.
