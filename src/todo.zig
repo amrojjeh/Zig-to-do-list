@@ -146,6 +146,31 @@ pub fn str(self: Self, buffer: []u8) ![:0]u8 {
     return buffer[0..tail:0];
 }
 
+/// Removes tasks based on whether they're complete or not, as specified by the complete parameter.
+/// Automatically deallocates
+pub fn removeTasks(self: *Self, completed: bool) void {
+    var it = self.tasks.first;
+    while (it) |node| {
+        if (node.data.completed == completed) {
+            it = node.next;
+            self.tasks.remove(node);
+            self.alloc.destroy(node);
+        } else it = node.next;
+    }
+}
+
+/// Filters tasks to include phrase
+pub fn filterTasks(self: *Self, phrase: []const u8) void {
+    var it = self.tasks.first;
+    while (it) |node| {
+        if (util.indexOfNoCase(u8, node.data.content, phrase) == null) {
+            self.tasks.remove(node);
+            it = node.next;
+            self.alloc.destroy(node);
+        } else it = node.next;
+    }
+}
+
 test "Basic" {
     const alloc = std.testing.allocator;
     var todo = Self.init(alloc);

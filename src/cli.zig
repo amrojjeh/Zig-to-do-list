@@ -43,6 +43,11 @@ const Commands = &[_]Command {
     },
 
     Command {
+        .names = &[_][:0]const u8{"count"},
+        .commandFn = countHashtags,
+    },
+
+    Command {
         .names = &[_][:0]const u8{"cleareverythingwithoutasking"}, // Clear all tasks, used for debug.
         .commandFn = clearAllTasks,
     },
@@ -69,7 +74,7 @@ fn runCommand(alloc: *Allocator, args: *Arguments) !void {
     var buffer: [40]u8 = undefined;
     std.mem.copy(u8, &buffer, arg[0..arg.len]);
     const str = buffer[1..arg.len]; // Remove the "-"
-    util.toLower(str);
+    util.toLowerStr(str);
     inline for (Commands) |command| {
         inline for (command.names) |n| {
             if (std.mem.eql(u8, str, n)) {
@@ -111,16 +116,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
     // Read arguments
     _ = args.next(); // skip -list
     while (args.next()) |a| {
-        var it = todo.tasks.first;
-        while (it) |node| {
-            if (std.mem.indexOf(u8, node.data.content, a) == null) {
-                todo.tasks.remove(node);
-                it = node.next;
-                alloc.destroy(node);
-            } else {
-                it = node.next;
-            }
-        }
+        todo.filterTasks(a);
     }
 
     var it = todo.tasks.first;
@@ -203,6 +199,37 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     try newline();
 
     try io.save(todo);
+}
+
+fn countHashtags(alloc: *Allocator, args: *Arguments) !void {
+    var c_names = [_][]u8{undefined} ** config.MAX_LINE;
+    var c_counter: [config.MAX_LINE]util.Pair(u64) = undefined;
+
+    var c = Todo.Task.HashtagCounter {
+        .names = &c_names,
+        .counter = &c_counter,
+    };
+
+    const todo = (try io.read(alloc)) orelse {
+        try printFail("Todo list is empty.\n", .{});
+        return;
+    }; defer todo.deinit();
+
+    var hashtag_names: [config.MAX_LINE][]const u8 = undefined;
+    var hashtag_counter: [config.MAX_LINE]util.Pair(u64) = undefined;
+    var it = todo.tasks.first;
+    while (it) |node| : (it = node.next) {
+        var tags = node.data.hashtags(&hashtag_names, &hashtag_counter);
+        while (tags.next()) |tag| {
+            _ = c.add(tag, node.data);
+        }
+    }
+
+    for (c.names[0..c.len]) |n, i| {
+        try print(Styles.HASHTAG, "{s}", .{n});
+        try printNormal(": {d} total | {d} uncompleted | {d} completed\n", .{c.counter[i].a + c.counter[i].b, c.counter[i].b, c.counter[i].a});
+        alloc.free(n);
+    }
 }
 
 fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {

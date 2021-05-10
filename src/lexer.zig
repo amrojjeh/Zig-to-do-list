@@ -38,7 +38,7 @@ pub fn peek(self: *Self) TokenError!?Token {
     if (self.args.peek()) |arg| {
         if (util.isAlpha(arg[0])) {
             std.mem.copy(u8, buffer[0..], arg);
-            util.toLower(buffer[0..arg.len]);
+            util.toLowerStr(buffer[0..arg.len]);
             self.next_token = Token { .month_name = try Date.nameToMonth(buffer[0..arg.len]) };
         } else {
             self.next_token = Token { .number = try std.fmt.parseInt(u32, arg, 10) };
