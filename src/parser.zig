@@ -14,6 +14,7 @@ const ParseError = Lexer.TokenError || error {
     ExpectedDay,
 };
 
+/// Used to parse tasks from the command line argument.
 pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
     var lex = Lexer { .args = args, };
 
