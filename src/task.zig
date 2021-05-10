@@ -1,37 +1,13 @@
 const std = @import("std");
 const Date = @import("date.zig");
 const config = @import("config.zig");
+const Styles = @import("cli.zig").Styles;
 
 content: []const u8,
 due: ?Date,
 completed: bool,
 
 const Self = @This();
-
-pub fn format(
-    self: Self,
-    comptime fmt: []const u8,
-    options: std.fmt.FormatOptions,
-    writer: anytype
-) !void {
-    var buffer: [config.MAX_LINE]u8 = undefined;
-    try writer.print("{s}", .{self.str(&buffer, true)});
-}
-
-pub fn str(self: Self, buffer: []u8, checkmark: bool) ![]u8 {
-    const completed_str = blk: {
-        if (checkmark) {
-            break :blk if (self.completed) "✅ " else "❌ ";
-        } else break :blk "";
-    };
-
-    return blk: {
-        if (self.due) |date| {
-            break :blk try std.fmt.bufPrint(buffer, "{s}{s} 📅 {any}", .{completed_str, self.content, date});
-        }
-        break :blk try std.fmt.bufPrint(buffer, "{s} {s}", .{completed_str, self.content});
-    };
-}
 
 pub fn hashtags(self: Self, buffer: [][]const u8) ?[][]const u8 {
     var words = std.mem.tokenize(self.content, " ");
@@ -50,7 +26,7 @@ pub fn hashtags(self: Self, buffer: [][]const u8) ?[][]const u8 {
     return buffer[0..i];
 }
 
-fn isHashtag(word: []const u8) bool {
+pub fn isHashtag(word: []const u8) bool {
     return word[0] == '#' and word.len > 1;
 }
 

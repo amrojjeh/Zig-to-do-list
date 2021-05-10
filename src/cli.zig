@@ -83,17 +83,17 @@ fn runCommand(alloc: *Allocator, args: *Arguments) !void {
 }
 
 fn commandDoesNotExist(commandName: []const u8) !void {
-    try printFail("Command {s} does not exist.", .{commandName});
+    try printFail("Command {s} does not exist.\n", .{commandName});
 }
 
 fn noArgs() !void {
-    try printFail("No arguments passed. Running help command...", .{});
+    try printFail("No arguments passed. Running help command...\n", .{});
 }
 
 fn list(alloc: *Allocator, args: *Arguments) !void {
     const noTasks = struct {
         pub fn noTasks() !void {
-            try printNormal("There are no tasks available.", .{});
+            try printNormal("There are no tasks available.\n", .{});
         }
     }.noTasks;
 
@@ -109,7 +109,8 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
     var it = todo.tasks.first;
     var index: usize = 1;
     while (it) |node| : (it = node.next) {
-        try printNormal("{d}. {any}", .{index, node.data});
+        try printNormal("{d}. ", .{index});
+        try TaskPrinter.p(node.data, true);
         index += 1;
     }
 }
@@ -122,10 +123,10 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     const task = parseTask(&buffer, args) catch |err| {
         switch (err) {
-            error.InvalidMonth => try printFail("Invalid month.", .{}),
-            error.InvalidDay => try printFail("Invalid day.", .{}),
-            error.AmbiguousAbbr => try printFail("Month name is ambiguous.", .{}),
-            else => try printFail("Something went wrong...{any}", .{err}),
+            error.InvalidMonth => try printFail("Invalid month.\n", .{}),
+            error.InvalidDay => try printFail("Invalid day.\n", .{}),
+            error.AmbiguousAbbr => try printFail("Month name is ambiguous.\n", .{}),
+            else => try printFail("Something went wrong...{any}\n", .{err}),
         }
         return;
     };
@@ -133,8 +134,8 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     try io.save(todo);
 
-    try printSuccess("Added task.", .{});
-    try printNormal("{s}", .{task.str(&buffer, false)});
+    try printSuccess("Added task.\n", .{});
+    try TaskPrinter.p(task, false);
 }
 
 /// Removes a task. First task is index 1.
@@ -143,22 +144,22 @@ fn removeTask(alloc: *Allocator, args: *Arguments) !void {
     const number = (try nextArgIndex(usize, args)) orelse return;
 
     var todo = (try io.read(alloc)) orelse {
-        try printFail("Cannot delete tasks. Todo list is empty.", .{});
+        try printFail("Cannot delete tasks. Todo list is empty.\n", .{});
         return;
     }; defer todo.deinit();
 
     if (number < 1) {
-        try printFail("Index cannot be less than 1.", .{});
+        try printFail("Index cannot be less than 1.\n", .{});
         return;
     }
 
     const removed = todo.remove(number - 1) orelse {
-        try printFail("Task does not exist.", .{});
+        try printFail("Task does not exist.\n", .{});
         return;
     }; defer alloc.destroy(removed);
 
-    try printSuccess("Removed task", .{});
-    try printNormal("{any}", .{removed.data});
+    try printSuccess("Removed task\n", .{});
+    try printNormal("{any}\n", .{removed.data});
 
     try io.save(todo);
 }
@@ -169,17 +170,17 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     const number = (try nextArgIndex(usize, args)) orelse return;
 
     var todo = (try io.read(alloc)) orelse {
-        try printFail("Could not complete task. Todo list is empty.", .{});
+        try printFail("Could not complete task. Todo list is empty.\n", .{});
         return;
     }; defer todo.deinit();
 
     var node = todo.get(number - 1) orelse {
-        try printFail("Task does not exist.", .{});
+        try printFail("Task does not exist.\n", .{});
         return;
     };
 
     node.data.completed = true;
-    try printNormal("{s}", .{node.data});
+    try printNormal("{s}\n", .{node.data});
 
     try io.save(todo);
 }
@@ -188,7 +189,7 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
     const todo = Todo.init(alloc);
     defer todo.deinit();
     try io.save(todo);
-    try printSuccess("👍 Deleted all tasks.", .{});
+    try printSuccess("👍 Deleted all tasks.\n", .{});
 }
 
 // ======= HELPER FUNCTIONS =======
@@ -214,7 +215,7 @@ fn print(style: []const u8, comptime str: []const u8, args: anytype) !void {
     const writer = getWriter();
     try writer.print("{s}", .{style});
     try writer.print(str, args);
-    try writer.print("{s}\n", .{Styles.RESET});    
+    try writer.print("{s}", .{Styles.RESET});    
 }
 
 fn nextArgIndex(comptime T: type, args: *Arguments) !?T {
@@ -224,3 +225,35 @@ fn nextArgIndex(comptime T: type, args: *Arguments) !?T {
         break :blk null;
     };
 }
+
+
+// ======= PRINTING OBJECTS =====
+
+const TaskPrinter = struct {
+    pub fn p(task: Todo.Task, checkmark: bool) !void {
+        const completed_str = blk: {
+            if (checkmark) {
+                break :blk if (task.completed) "✅ " else "❌ ";
+            } else break :blk "";
+        };
+
+        try printNormal("{s}", .{completed_str});
+        try pretty_content(task);
+        if (task.due) |date| {
+            try printNormal("📅 {any}\n", .{date});
+        }
+    }
+
+    /// Colors hashtags
+    fn pretty_content(task: Todo.Task) !void {
+        var words = std.mem.tokenize(task.content, " ");
+        while (words.next()) |word| {
+            if (Todo.Task.isHashtag(word)) {
+                try print(Styles.HASHTAG, "{s}", .{word});
+                try printNormal(" ", .{});
+            } else {
+                try printNormal("{s} ", .{word});
+            }
+        }
+    }
+};

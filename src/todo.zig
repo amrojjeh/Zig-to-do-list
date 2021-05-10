@@ -1,11 +1,11 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Date = @import("date.zig");
-const Task = @import("task.zig");
 const util = @import("util.zig");
 
-const Self = @This();
+pub const Task = @import("task.zig");
 pub const Tasks = std.TailQueue(Task);
+const Self = @This();
 
 alloc: *Allocator,
 tasks: Tasks,
