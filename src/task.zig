@@ -6,6 +6,7 @@ const Styles = @import("cli.zig").Styles;
 content: []const u8,
 due: ?Date,
 completed: bool,
+index: ?usize = null,
 
 const Self = @This();
 

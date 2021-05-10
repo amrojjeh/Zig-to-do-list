@@ -81,6 +81,15 @@ pub fn add(self: *Self, task: Task) !void {
     }
 }
 
+pub fn updateIndicies(self: *Self) void {
+    var it = self.tasks.first;
+    var i: usize = 1;
+    while (it) |node| : (it = node.next) {
+        node.data.index = i;
+        i += 1;
+    }
+}
+
 /// Removes a node. Index based, starts from 0.
 /// deinit will NOT deallocate this memory.
 pub fn remove(self: *Self, index: usize) ?*Tasks.Node {

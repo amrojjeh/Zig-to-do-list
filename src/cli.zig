@@ -106,6 +106,8 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
         try noTasks();
     }
 
+    todo.updateIndicies();
+
     // Read arguments
     _ = args.next(); // skip -list
     while (args.next()) |a| {
@@ -124,7 +126,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
     var it = todo.tasks.first;
     var index: usize = 1;
     while (it) |node| : (it = node.next) {
-        try printNormal("{d}. ", .{index});
+        try printNormal("{d}. ", .{node.data.index.?});
         try TaskPrinter.p(node.data, true);
         try newline();
         index += 1;
