@@ -9,6 +9,34 @@ completed: bool,
 
 const Self = @This();
 
+/// The higher the number, the less "urgent" the task is
+pub fn compare(self: Self, other: Self) i64 {
+    // If this isn't completed but the other is, then this is higher value
+    if (!self.completed and other.completed) {
+        return -1;
+    } else if (self.completed and !other.completed) {
+        return 1;
+    }
+
+    // .completed is now assumed to be the same
+
+    // Tasks without due dates should be ranked higher than ones with dates
+    if (self.due) |d| {
+        if (other.due) |d2| {
+            return d.compare(d2);
+        }
+        return -1;
+    }
+
+    // self.due must equal null
+
+    if (other.due != null) {
+        return 1;
+    }
+
+    return 0;
+}
+
 pub fn hashtags(self: Self, buffer: [][]const u8) ?[][]const u8 {
     var words = std.mem.tokenize(self.content, " ");
     var i: usize = 0;

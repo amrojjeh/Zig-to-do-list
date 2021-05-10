@@ -61,54 +61,23 @@ pub fn deinit(self: Self) void {
 /// Adds a new task based on its due date and completion status.
 /// Allocates memory
 pub fn add(self: *Self, task: Task) !void {
-    const H = struct {
-        fn isCompleted(tasks: *Tasks, me: *Tasks.Node) void {
-            var it = tasks.first;
-            const due_date = me.data.due orelse {
-                tasks.append(me);
-                return;
-            };
-
-            while (it) |node| : (it = node.next) {
-                if (node.data.completed and due_date.compare(node.data.due orelse Date {}) > 0) {
-                    tasks.insertBefore(node, me);
-                    return;
-                }
-            }
-            tasks.append(me);
-        }
-
-        fn isNotCompleted(tasks: *Tasks, me: *Tasks.Node) void {
-            var it = tasks.first;
-            const last_uncompleted_node = while (it) |node| : (it = node.next) {
-                if (node.data.completed) break node.prev;
-                if (me.data.due != null and me.data.due.?.compare(node.data.due orelse Date {}) > 0) {
-                    tasks.insertBefore(node, me);
-                    return;
-                }
-                break node;
-            } else {
-                tasks.prepend(me);
-                return;
-            };
-
-            if (last_uncompleted_node) |val| {
-                tasks.insertAfter(val, me);
-            } else {
-                tasks.prepend(me);
-            }
-        }
-    };
-
     var to_add = try self.alloc.create(Tasks.Node);
     to_add.* = Tasks.Node {
         .data = task,
     };
-    
-    if (to_add.data.completed) {
-        H.isCompleted(&self.tasks, to_add);
+
+    var largest_node_smaller_than_me: ?*Tasks.Node = null;
+    var it = self.tasks.first;
+    while (it) |node| : (it = node.next) {
+        const compare = node.data.compare(to_add.data);
+        if (largest_node_smaller_than_me == null or compare <= 0) {
+            largest_node_smaller_than_me = node;
+        }
+    }
+    if (largest_node_smaller_than_me) |node| {
+        self.tasks.insertAfter(node, to_add);
     } else {
-        H.isNotCompleted(&self.tasks, to_add);
+        self.tasks.prepend(to_add);
     }
 }
 

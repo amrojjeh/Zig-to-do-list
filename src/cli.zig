@@ -111,6 +111,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
     while (it) |node| : (it = node.next) {
         try printNormal("{d}. ", .{index});
         try TaskPrinter.p(node.data, true);
+        try newline();
         index += 1;
     }
 }
@@ -136,6 +137,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     try printSuccess("Added task.\n", .{});
     try TaskPrinter.p(task, false);
+    try newline();
 }
 
 /// Removes a task. First task is index 1.
@@ -180,7 +182,8 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     };
 
     node.data.completed = true;
-    try printNormal("{s}\n", .{node.data});
+    try TaskPrinter.p(node.data, true);
+    try newline();
 
     try io.save(todo);
 }
@@ -198,7 +201,11 @@ fn getWriter() std.fs.File.Writer {
     return std.io.getStdOut().writer();
 }
 
-/// Prints a failed statement. Automatic newline.
+fn newline() !void {
+    try printNormal("\n", .{});
+}
+
+/// Prints a failed statement.
 fn printFail(comptime str: []const u8, args: anytype) !void {
     try print(Styles.FAIL, str, args);
 }
@@ -240,7 +247,7 @@ const TaskPrinter = struct {
         try printNormal("{s}", .{completed_str});
         try pretty_content(task);
         if (task.due) |date| {
-            try printNormal("📅 {any}\n", .{date});
+            try printNormal("📅 {any}", .{date});
         }
     }
 
