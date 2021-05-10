@@ -97,13 +97,28 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
         }
     }.noTasks;
 
-    const todo = (try io.read(alloc)) orelse {
+    var todo = (try io.read(alloc)) orelse {
         try noTasks();
         return;
     }; defer todo.deinit();
 
     if (util.tailQueueLen(todo.tasks) == 0) {
         try noTasks();
+    }
+
+    // Read arguments
+    _ = args.next(); // skip -list
+    while (args.next()) |a| {
+        var it = todo.tasks.first;
+        while (it) |node| {
+            if (std.mem.indexOf(u8, node.data.content, a) == null) {
+                todo.tasks.remove(node);
+                it = node.next;
+                alloc.destroy(node);
+            } else {
+                it = node.next;
+            }
+        }
     }
 
     var it = todo.tasks.first;
