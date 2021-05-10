@@ -198,7 +198,7 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
         return;
     };
 
-    node.data.completed = true;
+    node.data.completed = !node.data.completed;
     try TaskPrinter.p(node.data, true);
     try newline();
 
