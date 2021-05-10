@@ -7,11 +7,24 @@ const Todo = @import("todo.zig");
 const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 
+pub const Styles = struct {
+    pub const BOLD = "\x1B[1m";
+    pub const UNDERLINE = "\x1B[4m";
+    pub const FAIL = "\x1B[91m" ++ BOLD;
+    pub const SUCCESS = "\x1B[32m" ++ BOLD;
+    pub const HASHTAG = "\x1B[36m" ++ BOLD ++ UNDERLINE;
+    pub const NORMAL = "\x1B[37m" ++ BOLD;
+
+    pub const STRIKE = "\x1B[9m";
+
+    pub const RESET = "\x1B[0m";
+};
 
 const Command = struct {
     names: []const [:0]const u8,
     commandFn: fn (*Allocator, *Arguments) anyerror!void,
 };
+
 
 const Commands = &[_]Command {
     Command {
@@ -180,17 +193,6 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
 
 // ======= HELPER FUNCTIONS =======
 
-const Styles = struct {
-    pub const BOLD = "\x1B[1m";
-    pub const FAIL = "\x1B[91m" ++ BOLD;
-    pub const SUCCESS = "\x1B[32m" ++ BOLD;
-    pub const NORMAL = "\x1B[37m" ++ BOLD;
-
-    pub const STRIKE = "\x1B[9m";
-
-    pub const RESET = "\x1B[0m";
-};
-
 fn getWriter() std.fs.File.Writer {
     return std.io.getStdOut().writer();
 }
@@ -222,4 +224,3 @@ fn nextArgIndex(comptime T: type, args: *Arguments) !?T {
         break :blk null;
     };
 }
-
