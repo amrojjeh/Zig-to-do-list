@@ -161,8 +161,8 @@ fn removeTask(alloc: *Allocator, args: *Arguments) !void {
     }; defer alloc.destroy(removed);
 
     try printSuccess("Removed task\n", .{});
-    try printNormal("{any}\n", .{removed.data});
-
+    try TaskPrinter.p(removed.data, true);
+    try newline();
     try io.save(todo);
 }
 
