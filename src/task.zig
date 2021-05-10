@@ -5,7 +5,6 @@ const config = @import("config.zig");
 content: []const u8,
 due: ?Date,
 completed: bool,
-hashtags: ?[]const []const u8 = null,
 
 const Self = @This();
 
