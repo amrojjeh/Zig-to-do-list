@@ -41,7 +41,12 @@ pub fn peek(self: *Self) TokenError!?Token {
             util.toLowerStr(buffer[0..arg.len]);
             self.next_token = Token { .month_name = try Date.nameToMonth(buffer[0..arg.len]) };
         } else {
-            self.next_token = Token { .number = try std.fmt.parseInt(u32, arg, 10) };
+            if (arg[arg.len - 1] == ',') {
+                self.next_token = Token { .number = try std.fmt.parseInt(u32, arg[0..arg.len-1], 10) };
+            }
+            else {
+                self.next_token = Token { .number = try std.fmt.parseInt(u32, arg, 10) };
+            }
         }
     } else self.next_token = null;
     return self.next_token;

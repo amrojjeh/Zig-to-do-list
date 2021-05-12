@@ -8,10 +8,11 @@ const Date = @import("date.zig");
 const testing = std.testing;
 
 const ParseError = Lexer.TokenError || error {
+    ExpectedDay,
     ExpectedMonth,
+    ExpectedYear,
     MonthDoesNotExist,
     DayOutOfRange,
-    ExpectedDay,
 };
 
 /// Used to parse tasks from the command line argument.
@@ -46,10 +47,17 @@ fn noDueDate(lex: *Lexer) ?Date {
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
     const m = try month(lex);
     const d = try day(lex);
-    const now = Date.now().flatten();
-    const default = try Date.init(now.year(), m, d);
-    const useSmartYearAssumption = now.compare(default) > 0; // fancy way of saying increment year by 1
-    return try Date.init(now.year() + if (useSmartYearAssumption) @as(i64, 1) else @as(i64, 0), m, d);
+    const y = blk: {
+        if (try lex.peek()) |y| {
+            break :blk try year(lex);
+        } else {
+            const now = Date.now().flatten();
+            const default = try Date.init(now.year(), m, d);
+            const useSmartYearAssumption = now.compare(default) > 0; // fancy way of saying increment year by 1            
+            break :blk now.year() + if (useSmartYearAssumption) @as(i64, 1) else @as(i64, 0);
+        }
+    };
+    return try Date.init(y, m, d);
 }
 
 fn month(lex: *Lexer) ParseError!i64 {
@@ -70,6 +78,16 @@ fn day(lex: *Lexer) ParseError!i64 {
             else => return ParseError.ExpectedDay,
         }
     } else return ParseError.ExpectedDay;
+}
+
+fn year(lex: *Lexer) ParseError!i64 {
+    const t = try lex.next();
+    if (t) |val| {
+        switch (val) {
+            .number => |n| return n,
+            else => return ParseError.ExpectedYear
+        }
+    } else return ParseError.ExpectedYear;
 }
 
 /// Content is the task itself, the todo. It can end with a ";", or if there's nothing left
