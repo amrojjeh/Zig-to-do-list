@@ -22,7 +22,7 @@ pub fn save(todo: Todo) !void {
     var dir = try getRootDir();
     const file = try dir.createFile(config.FILE_NAME, CreateFlags{});
     var buffer: [config.MAX_LINE * 100]u8 = undefined;
-    var string = try todo.str(buffer[0..]);
+    var string = try Todo.Parser.str(todo, buffer[0..]);
     _ = try file.write(string);
 }
 
@@ -33,7 +33,7 @@ pub fn read(allocator: *Allocator) !?Todo {
     const file = dir.openFile(config.FILE_NAME, OpenFlags {}) catch return null;
     const tail = try file.reader().read(buffer);
     buffer[tail] = 0;
-    return try Todo.init_str(allocator, buffer[0..tail:0]);
+    return try Todo.Parser.parse(allocator, buffer[0..tail:0]);
 }
 
 pub fn delete(self: Self) Dir.DeleteFileError!void {

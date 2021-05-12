@@ -10,44 +10,79 @@ const Self = @This();
 alloc: *Allocator,
 tasks: Tasks,
 
+pub const Parser = struct {
+    pub const seperator = "\x01";
+
+    pub fn strAlloc(self: Self, allocator: *Allocator) ![:0]u8 {
+        var buf = try allocator.alloc(u8, 100 * self.tasks.len());
+        return self.str(buf);
+    }
+
+    pub fn str(self: Self, buffer: []u8) ![:0]u8 {
+        var todo_iter = self.tasks.first;
+        var i: usize = 0;
+        var tail: usize = 0;
+        const size = util.tailQueueLen(self.tasks);
+        while (i < size) : (i += 1) {
+            var line = buffer[tail .. (1+i)*100];
+            const task = todo_iter.?.data;
+
+            const completed: i64 = if (task.completed) 1 else 0;
+            const printed = blk: {
+                if (task.due) |d| {
+                    break :blk try std.fmt.bufPrint(line, "{s}" ++ seperator ++ "{d}" ++ seperator ++ "{d}\n", .{task.content, d.dateToEpoch() ,completed});
+                } else {
+                    break :blk try std.fmt.bufPrint(line, "{s}" ++ seperator ++ "{any}" ++ seperator ++ "{d}\n", .{task.content, task.due, completed});
+                }
+            };
+            tail = tail + printed.len;
+            todo_iter = todo_iter.?.next;
+        }
+
+        buffer[tail] = 0;
+
+        return buffer[0..tail:0];
+    }
+
+    /// Assumes valid input
+    pub fn parse(allocator: *Allocator, buffer: [:0]const u8) !Self {
+        const Helpers = struct {
+            pub fn getDue(token: []const u8) ?Date {
+                const epoch = std.fmt.parseInt(i64, token, 10) catch null;
+                if (epoch) |val|
+                    return Date.epochToDate(val)
+                else
+                    return null;
+            }
+
+            pub fn getCompleted(token: []const u8) !bool {
+                const val = try std.fmt.parseInt(u8, token, 10);
+                return val != 0;
+            }
+        };
+
+        var todo = init(allocator);
+        var lines = std.mem.tokenize(buffer, "\n");
+        while (lines.next()) |line| {
+            var tokens = std.mem.tokenize(line, seperator);
+            const content: []const u8 = tokens.next().?;
+            const due: ?Date = Helpers.getDue(tokens.next().?);
+            const completed: bool = try Helpers.getCompleted(tokens.next().?);
+            try todo.add(Task {
+                .content = content,
+                .due = due,
+                .completed = completed,
+                });
+        }
+        return todo;
+    }
+};
+
 pub fn init(allocator: *Allocator) Self {
     return Self {
         .alloc = allocator,
         .tasks = Tasks{},
     };
-}
-
-/// Assumes valid input
-pub fn init_str(allocator: *Allocator, buffer: [:0]const u8) !Self {
-    const Helpers = struct {
-        pub fn getDue(token: []const u8) ?Date {
-            const epoch = std.fmt.parseInt(i64, token, 10) catch null;
-            if (epoch) |val|
-                return Date.epochToDate(val)
-            else
-                return null;
-        }
-
-        pub fn getCompleted(token: []const u8) !bool {
-            const val = try std.fmt.parseInt(u8, token, 10);
-            return val != 0;
-        }
-    };
-
-    var todo = init(allocator);
-    var lines = std.mem.tokenize(buffer, "\n");
-    while (lines.next()) |line| {
-        var tokens = std.mem.tokenize(line, "|");
-        const content: []const u8 = tokens.next().?;
-        const due: ?Date = Helpers.getDue(tokens.next().?);
-        const completed: bool = try Helpers.getCompleted(tokens.next().?);
-        try todo.add(Task {
-            .content = content,
-            .due = due,
-            .completed = completed,
-            });
-    }
-    return todo;
 }
 
 pub fn deinit(self: Self) void {
@@ -113,37 +148,6 @@ pub fn get(self: *Self, index: usize) ?*Tasks.Node {
         i += 1;
     }
     return null;
-}
-
-pub fn strAlloc(self: Self, allocator: *Allocator) ![:0]u8 {
-    var buf = try allocator.alloc(u8, 100 * self.tasks.len());
-    return self.str(buf);
-}
-
-pub fn str(self: Self, buffer: []u8) ![:0]u8 {
-    var todo_iter = self.tasks.first;
-    var i: usize = 0;
-    var tail: usize = 0;
-    const size = util.tailQueueLen(self.tasks);
-    while (i < size) : (i += 1) {
-        var line = buffer[tail .. (1+i)*100];
-        const task = todo_iter.?.data;
-
-        const completed: i64 = if (task.completed) 1 else 0;
-        const printed = blk: {
-            if (task.due) |d| {
-                break :blk try std.fmt.bufPrint(line, "{s}|{d}|{d}\n", .{task.content, d.dateToEpoch(), completed});
-            } else {
-                break :blk try std.fmt.bufPrint(line, "{s}|{}|{d}\n", .{task.content, task.due, completed});
-            }
-        };
-        tail = tail + printed.len;
-        todo_iter = todo_iter.?.next;
-    }
-
-    buffer[tail] = 0;
-
-    return buffer[0..tail:0];
 }
 
 /// Removes tasks based on whether they're complete or not, as specified by the complete parameter.
