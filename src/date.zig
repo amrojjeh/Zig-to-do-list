@@ -13,7 +13,7 @@ const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 pub const Month = enum {
-    January=1,
+    January,
     February,
     March,
     April,
@@ -43,7 +43,7 @@ pub fn nameToMonth(name: []const u8) DateError!Month {
     if (name.len < 3) return DateError.AmbiguousAbbr;
     inline for (names_full) |month_name, index| {
         if (std.mem.startsWith(u8, month_name, name)) {
-            return @intToEnum(Month, @intCast(u4, index + 1));
+            return @intToEnum(Month, @intCast(u4, index));
         }
     }
     return DateError.InvalidMonth;
@@ -55,20 +55,17 @@ pub const DateError = error {
     AmbiguousAbbr,
 };
 
-pub fn init(y: i64, m: i64, d: i64) DateError!Self {
-    if (m > 12 or m < 1) {
+pub fn init(y: u32, m: u32, d: u32) DateError!Self {
+    if (m > 11) {
         return DateError.InvalidMonth;
     }
-
-    const m_index = @intCast(usize, m);
-
     const months = if (isLeapYear(y)) leap_year_months else normal_year_months;
 
-    if (d > months[m_index - 1] or d < 1) {
+    if (d > months[m]) {
         return DateError.InvalidDay;
     }
 
-    const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m_index == 1) d - 1 else d + sum(months[0..m_index - 1]);
+    const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m == 0) d else d + sum(months[0..m]);
 
     return Self {
         .days = days,
@@ -156,21 +153,21 @@ fn dayToLastYear(self: Self) i64 {
 /// Get the year
 /// 0 is 1 BC
 /// Assumes normalized date
-pub fn year(self: Self) i64 {
-    return @floatToInt(i64, @divTrunc(@intToFloat(f64, self.days), 365.24)) + 1970;
+pub fn year(self: Self) u32 {
+    return @floatToInt(u32, @divTrunc(@intToFloat(f64, self.days), 365.24)) + 1970;
 }
 
 /// Assumes normalized date
 pub fn month(self: Self) usize {
     const months = self.yearMonths();
-    const m = 1 + indexBeforeSumExceedsValue(self.dayOfYear(), months);
+    const m = indexBeforeSumExceedsValue(self.dayOfYear(), months);
 
     return @intCast(usize, m); 
 }
 
 /// Assumes normalized date
 pub fn day(self: Self) i64 {
-    const index = self.month() - 1;
+    const index = self.month();
     return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear() - 1;
 }
 
@@ -179,7 +176,7 @@ pub fn dayOfWeek(self: Self) DayOfWeek {
     // Epoch time is on a Thursday morning!
     // (I used this: https://www.timeanddate.com/date/weekday.html)
 
-    return @intToEnum(DayOfWeek, @intCast(u3, @rem(3 + self.days, 7)));
+    return @intToEnum(DayOfWeek, @intCast(u3, @rem(2 + self.days, 7)));
 }
 
 pub fn dayOfWeekStr(self: Self) []const u8 {
@@ -303,22 +300,22 @@ test "date.nameToMonth" {
 
 test "date.init" {
     {
-        const date = try init(1970, 1, 1);
+        const date = try init(1970, 0, 0);
         const expected = Self {};
         testing.expectEqual(expected, date);
     }
 
     {
-        const date = try init(1970, 2, 2);
+        const date = try init(1970, 1, 1);
         const expected = Self { .days = 31 + 1 };
         testing.expectEqual(expected, date);
     }
 
     {
-        testing.expectError(DateError.InvalidMonth, init(1970, 13, 2));
-        testing.expectError(DateError.InvalidMonth, init(1970, 0, 2));
-        testing.expectError(DateError.InvalidDay, init(1970, 1, 32));
-        testing.expectError(DateError.InvalidDay, init(1970, 1, 0));
+        testing.expectError(DateError.InvalidMonth, init(1970, 12, 2));
+        // testing.expectError(DateError.InvalidMonth, init(1970, -1, 2));
+        testing.expectError(DateError.InvalidDay, init(1970, 1, 31));
+        // testing.expectError(DateError.InvalidDay, init(1970, 1, -1));
     }
 }
 
@@ -416,33 +413,33 @@ test "date.Adding date" {
 
 test "date.Get year, month, and day" {
     const date = Self {
-        .days = 18725,
+        .days = 18726,
         .hours = 13,
         .minutes = 44,
         .seconds = 08,
     };
 
     testing.expectEqual(@as(i64, 2021), date.year());
-    testing.expectEqual(@as(i64, 4), date.month());
+    testing.expectEqual(@as(usize, 3), date.month());
     testing.expectEqual(@as(i64, 8), date.day());
     testing.expectEqual(Month.April, @intToEnum(Month, @intCast(u4, date.month())));
 }
 
 test "date.Timezones" {
     const date = Self {
-        .days = 18725,
+        .days = 18726,
         .hours = 1,
     };
 
     // No daylight savings
     const cst_time = date.utc(-6, 0);
     const expected_date = Self {
-        .days = 18725 - 1,
+        .days = 18726 - 1,
         .hours = 19,
     };
 
     testing.expectEqual(expected_date, cst_time);
     testing.expectEqual(@as(i64, 2021), cst_time.year());
-    testing.expectEqual(@as(i64, 4), cst_time.month());
+    testing.expectEqual(@as(usize, 3), cst_time.month());
     testing.expectEqual(@as(i64, 7), cst_time.day());
 }

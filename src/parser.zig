@@ -74,12 +74,11 @@ fn getNextMonth(date: Date) Date {
     }.isNewMonth;
     const today = date.day();
     const month_num = date.month();
-    const days_in_month = date.yearMonths()[month_num - 1];
+    const days_in_month = date.yearMonths()[month_num];
     return date.add(Date {.days = 1 + days_in_month - today});
 }
 
 fn tomorrow() Date {
-    std.debug.print("{d}", .{Date.now().flatten().day()});
     return Date.now().flatten().add(Date {.days = 1});
 }
 
@@ -93,23 +92,23 @@ fn monthDayFormat(lex: *Lexer) ParseError!Date {
             const now = Date.now().flatten();
             const default = try Date.init(now.year(), m, d);
             const useSmartYearAssumption = now.compare(default) > 0; // fancy way of saying increment year by 1            
-            break :blk now.year() + if (useSmartYearAssumption) @as(i64, 1) else @as(i64, 0);
+            break :blk now.year() + if (useSmartYearAssumption) @as(u32, 1) else @as(u32, 0);
         }
     };
     return try Date.init(y, m, d);
 }
 
-fn month(lex: *Lexer) ParseError!i64 {
+fn month(lex: *Lexer) ParseError!u32 {
     const t = try lex.next();
     if (t) |val| {
         switch (val) {
-            .month_name => |m| return @intCast(i64, @enumToInt(m)),
+            .month_name => |m| return @intCast(u32, @enumToInt(m)),
             else => return ParseError.ExpectedMonth,
         }
     } else return ParseError.ExpectedMonth;
 }
 
-fn day(lex: *Lexer) ParseError!i64 {
+fn day(lex: *Lexer) ParseError!u32 {
     const t = try lex.next();
     if (t) |val| {
         switch (val) {
@@ -119,7 +118,7 @@ fn day(lex: *Lexer) ParseError!i64 {
     } else return ParseError.ExpectedDay;
 }
 
-fn year(lex: *Lexer) ParseError!i64 {
+fn year(lex: *Lexer) ParseError!u32 {
     const t = try lex.next();
     if (t) |val| {
         switch (val) {
