@@ -27,6 +27,16 @@ pub const Month = enum {
     December,
 };
 
+pub const DayOfWeek = enum {
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
+};
+
 pub fn nameToMonth(name: []const u8) DateError!Month {
     const names_full = [_][:0]const u8{"january", "february", "march", "april", "may", "june", 
         "july", "august", "september", "october", "november", "december"};
@@ -58,7 +68,7 @@ pub fn init(y: i64, m: i64, d: i64) DateError!Self {
         return DateError.InvalidDay;
     }
 
-    const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m_index == 1) d - 1 else d - 1 + sum(months[0..m_index - 1]);
+    const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m_index == 1) d - 1 else d + sum(months[0..m_index - 1]);
 
     return Self {
         .days = days,
@@ -151,17 +161,29 @@ pub fn year(self: Self) i64 {
 }
 
 /// Assumes normalized date
-pub fn month(self: Self) i64 {
+pub fn month(self: Self) usize {
     const months = self.yearMonths();
     const m = 1 + indexBeforeSumExceedsValue(self.dayOfYear(), months);
 
-    return @intCast(u4, m); 
+    return @intCast(usize, m); 
 }
 
 /// Assumes normalized date
 pub fn day(self: Self) i64 {
-    const index = @intCast(usize, self.month()) - 1;
-    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
+    const index = self.month() - 1;
+    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear() - 1;
+}
+
+/// Assumes normalized date
+pub fn dayOfWeek(self: Self) DayOfWeek {
+    // Epoch time is on a Thursday morning!
+    // (I used this: https://www.timeanddate.com/date/weekday.html)
+
+    return @intToEnum(DayOfWeek, @intCast(u3, @rem(3 + self.days, 7)));
+}
+
+pub fn dayOfWeekStr(self: Self) []const u8 {
+    return @tagName(self.dayOfWeek());
 }
 
 /// Returns the name of the month

@@ -11,24 +11,21 @@ next_token: ?Token = null,
 
 const Self = @This();
 
-const TokenType = enum {
-    // next_keyword,
-    // year_keyword,
-    // month_keyword,
-    // week_keyword,
-    // day_keyword,
-
-    month_name,
-    number,
-
-    // ADD ALL DAY NAMES,
-    // ADD ALL MONTHS,
-};
-
-const Token = union(TokenType) {
+const Token = union(enum) {
     month_name: Date.Month,
     number: u32,
+
+    // Constants
+    next,
+    week,
+    month,
+    tomorrow,
+
+
+    pub const constants = [_]Token{Token.week, Token.next, Token.month, Token.tomorrow};
 };
+
+// Tokens which are the same name as written in input
 
 pub const TokenError = Date.DateError || std.fmt.ParseIntError;
 
@@ -39,7 +36,16 @@ pub fn peek(self: *Self) TokenError!?Token {
         if (util.isAlpha(arg[0])) {
             std.mem.copy(u8, buffer[0..], arg);
             util.toLowerStr(buffer[0..arg.len]);
-            self.next_token = Token { .month_name = try Date.nameToMonth(buffer[0..arg.len]) };
+
+            inline for (Token.constants) |c| {
+                if (std.mem.eql(u8, @tagName(c), arg)) {
+                    self.next_token = c;
+                }
+            }
+
+            if (self.next_token == null) {
+                self.next_token = Token { .month_name = try Date.nameToMonth(arg) };
+            }
         } else {
             if (arg[arg.len - 1] == ',') {
                 self.next_token = Token { .number = try std.fmt.parseInt(u32, arg[0..arg.len-1], 10) };

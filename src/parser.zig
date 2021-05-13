@@ -11,6 +11,8 @@ const ParseError = Lexer.TokenError || error {
     ExpectedDay,
     ExpectedMonth,
     ExpectedYear,
+    ExpectedNext,
+    ExpectedDuration,
     MonthDoesNotExist,
     DayOutOfRange,
 };
@@ -33,15 +35,52 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
 fn root(lex: *Lexer) ParseError!?Date {
     const t = try lex.peek();
     if (t) |val| {
-        switch (val) {
-            .month_name => return try monthDayFormat(lex),
-            else => return ParseError.ExpectedMonth,
-        }
+        return switch (val) {
+            .month_name => try monthDayFormat(lex),
+            .next => try next(lex),
+            .tomorrow => tomorrow(),
+            else => ParseError.ExpectedMonth,
+        };
     } else return noDueDate(lex);
 }
 
 fn noDueDate(lex: *Lexer) ?Date {
     return null;
+}
+
+fn next(lex: *Lexer) ParseError!Date {
+    _ = (try lex.next()) orelse return ParseError.ExpectedNext;
+    const t = try lex.next();
+    if (t) |val| {
+        switch (val) {
+            .week => return getNextWeek(Date.now()),
+            .month => return getNextMonth(Date.now()),
+            else => return ParseError.ExpectedDuration,
+        }
+    } else return ParseError.ExpectedNext;
+}
+
+fn getNextWeek(date: Date) Date {
+    const today = @enumToInt(date.dayOfWeek());
+    const start_of_next_week = 7 - today; // if today = 0, then it should increment 7
+    return date.add(Date {.days = start_of_next_week});
+}
+
+fn getNextMonth(date: Date) Date {
+    const isNewMonth = struct {
+        pub fn isNewMonth(old: Date, new: Date) bool {
+            return new.month() - 1 == old.month();
+        }
+    }.isNewMonth;
+    const today = date.day();
+    const month_num = date.month();
+    const days_in_month = date.yearMonths()[month_num - 1];
+    return date.add(Date {.days = 1 + days_in_month - today});
+}
+
+fn tomorrow() Date {
+    std.debug.print("{d}", .{Date.now().flatten().day()});
+    return Date.now().flatten().add(Date {.days = 1});
 }
 
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
