@@ -23,10 +23,12 @@ const Token = union(enum) {
     month,
     year,
 
+    today,
     tomorrow,
 
 
-    pub const constants = [_]Token{Token.week, Token.this, Token.month, Token.year, Token.tomorrow};
+    // If it's a type void, it's a constant
+    pub const constants = [_]Token{Token.week, Token.this, Token.month, Token.year, Token.today, Token.tomorrow};
 };
 
 // Tokens which are the same name as written in input

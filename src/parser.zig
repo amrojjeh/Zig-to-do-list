@@ -39,6 +39,7 @@ fn root(lex: *Lexer) ParseError!?Date {
             .month_name => try monthDayFormat(lex),
             .this => try this(lex),
             .tomorrow => tomorrow(),
+            .today => today(),
             else => ParseError.ExpectedMonth,
         };
     } else return noDueDate(lex);
@@ -84,14 +85,18 @@ fn getThisMonth(date: Date) Date {
             return new.month() - 1 == old.month();
         }
     }.isNewMonth;
-    const today = date.day();
+    const t = date.day();
     const month_num = date.month();
     const days_in_month = date.yearMonths()[month_num];
-    return date.add(Date {.days = 1 + days_in_month - today});
+    return date.add(Date {.days = 1 + days_in_month - t});
 }
 
 fn tomorrow() Date {
     return Date.now().flatten().add(Date {.days = 1});
+}
+
+fn today() Date {
+    return Date.now().flatten();
 }
 
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
