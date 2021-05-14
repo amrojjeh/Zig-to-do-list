@@ -13,16 +13,20 @@ const Self = @This();
 
 const Token = union(enum) {
     month_name: Date.Month,
+    week_day_name: Date.DayOfWeek,
     number: u32,
 
     // Constants
-    next,
+    this,
+
     week,
     month,
+    year,
+
     tomorrow,
 
 
-    pub const constants = [_]Token{Token.week, Token.next, Token.month, Token.tomorrow};
+    pub const constants = [_]Token{Token.week, Token.this, Token.month, Token.year, Token.tomorrow};
 };
 
 // Tokens which are the same name as written in input
@@ -44,7 +48,13 @@ pub fn peek(self: *Self) TokenError!?Token {
             }
 
             if (self.next_token == null) {
-                self.next_token = Token { .month_name = try Date.nameToMonth(arg) };
+                if (try Date.nameToMonth(arg)) |m| {
+                    self.next_token = Token { .month_name = m };
+                } else if (try Date.nameToDayOfWeek(arg)) |d| {
+                    self.next_token = Token { .week_day_name = d };
+                } else {
+                    return TokenError.InvalidDate;
+                }
             }
         } else {
             if (arg[arg.len - 1] == ',') {

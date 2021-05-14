@@ -1,4 +1,5 @@
 const std = @import("std");
+const util = @import("util.zig");
 const time = std.time;
 const testing = std.testing;
 
@@ -13,56 +14,67 @@ const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 pub const Month = enum {
-    January,
-    February,
-    March,
-    April,
-    May,
-    June,
-    July,
-    August,
-    September,
-    October,
-    November,
-    December,
+    january,
+    february,
+    march,
+    april,
+    may,
+    june,
+    july,
+    august,
+    september,
+    october,
+    november,
+    december,
 };
 
 pub const DayOfWeek = enum {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
+    monday,
+    tuesday,
+    wednesday,
+    thursday,
+    friday,
+    saturday,
+    sunday,
 };
 
-pub fn nameToMonth(name: []const u8) DateError!Month {
-    const names_full = [_][:0]const u8{"january", "february", "march", "april", "may", "june", 
-        "july", "august", "september", "october", "november", "december"};
+pub fn nameToMonth(name: []const u8) DateError!?Month {
+    const names_full = comptime util.enumFieldNames(Month);
     if (name.len < 3) return DateError.AmbiguousAbbr;
     inline for (names_full) |month_name, index| {
         if (std.mem.startsWith(u8, month_name, name)) {
             return @intToEnum(Month, @intCast(u4, index));
         }
     }
-    return DateError.InvalidMonth;
+    return null;
+}
+
+pub fn nameToDayOfWeek(name: []const u8) DateError!?DayOfWeek {
+    const names_full = comptime util.enumFieldNames(DayOfWeek);
+    if (name.len == 1 and (name[0] == 's' or name[1] == 't')) {
+        return DateError.AmbiguousAbbr;
+    }
+    inline for (names_full) |day_name, index| {
+        if (std.mem.startsWith(u8, day_name, name)) {
+            return @intToEnum(DayOfWeek, @intCast(u4, index));
+        }
+    }
+    return null;
 }
 
 pub const DateError = error {
-    InvalidMonth,
-    InvalidDay,
     AmbiguousAbbr,
+    InvalidDate,
 };
 
 pub fn init(y: u32, m: u32, d: u32) DateError!Self {
     if (m > 11) {
-        return DateError.InvalidMonth;
+        return DateError.InvalidDate;
     }
     const months = if (isLeapYear(y)) leap_year_months else normal_year_months;
 
     if (d > months[m]) {
-        return DateError.InvalidDay;
+        return DateError.InvalidDate;
     }
 
     const days = @floatToInt(i64, @ceil(365.24 * @intToFloat(f64, (y - 1970)))) + if (m == 0) d else d + sum(months[0..m]);
@@ -168,7 +180,7 @@ pub fn month(self: Self) usize {
 /// Assumes normalized date
 pub fn day(self: Self) i64 {
     const index = self.month();
-    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear() - 1;
+    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
 }
 
 /// Assumes normalized date
@@ -176,11 +188,7 @@ pub fn dayOfWeek(self: Self) DayOfWeek {
     // Epoch time is on a Thursday morning!
     // (I used this: https://www.timeanddate.com/date/weekday.html)
 
-    return @intToEnum(DayOfWeek, @intCast(u3, @rem(2 + self.days, 7)));
-}
-
-pub fn dayOfWeekStr(self: Self) []const u8 {
-    return @tagName(self.dayOfWeek());
+    return @intToEnum(DayOfWeek, @intCast(u3, @rem(3 + self.days, 7)));
 }
 
 /// Returns the name of the month
@@ -260,7 +268,7 @@ pub fn format(
     options: std.fmt.FormatOptions,
     writer: anytype
 ) !void {
-    try writer.print("{s} {d}, {d}", .{self.monthName(), self.day(), self.year()});
+    try writer.print("{s}: {s} {d}, {d}", .{@tagName(self.dayOfWeek()), self.monthName(), self.day(), self.year()});
 }
 
 fn indexBeforeSumExceedsValue(val: i64, list: []const i64) usize {

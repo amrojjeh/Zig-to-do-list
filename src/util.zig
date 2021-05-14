@@ -1,5 +1,25 @@
 const std = @import("std");
 
+pub fn enumFieldNames(comptime e: type) [@typeInfo(e).Enum.fields.len][]const u8 {
+    const len = @typeInfo(e).Enum.fields.len;
+    var names: [len][]const u8 = undefined;
+    inline for (@typeInfo(e).Enum.fields) |f, i| {
+        names[i] = f.name;
+    }
+    return names;
+}
+
+test "util.enumFieldNames" {
+    const e = enum {
+        cool,
+        amazing,
+    };
+
+    const names = comptime enumFieldNames(e);
+    std.debug.assert(std.mem.eql(u8, names[0], "cool"));
+    std.debug.assert(std.mem.eql(u8, names[1], "amazing"));
+}
+
 pub fn eqlNoCase(comptime T: type, a: []const T, b:[]const T) bool {
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;

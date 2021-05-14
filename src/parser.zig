@@ -37,7 +37,7 @@ fn root(lex: *Lexer) ParseError!?Date {
     if (t) |val| {
         return switch (val) {
             .month_name => try monthDayFormat(lex),
-            .next => try next(lex),
+            .this => try this(lex),
             .tomorrow => tomorrow(),
             else => ParseError.ExpectedMonth,
         };
@@ -48,25 +48,37 @@ fn noDueDate(lex: *Lexer) ?Date {
     return null;
 }
 
-fn next(lex: *Lexer) ParseError!Date {
+fn this(lex: *Lexer) ParseError!Date {
     _ = (try lex.next()) orelse return ParseError.ExpectedNext;
     const t = try lex.next();
     if (t) |val| {
-        switch (val) {
-            .week => return getNextWeek(Date.now()),
-            .month => return getNextMonth(Date.now()),
-            else => return ParseError.ExpectedDuration,
-        }
+        return switch (val) {
+            .week => getThisWeek(Date.DayOfWeek.saturday, Date.now()),
+            .month => getThisMonth(Date.now()),
+            .week_day_name => |d| getThisWeek(d, Date.now()),
+            else => ParseError.ExpectedDuration,
+        };
     } else return ParseError.ExpectedNext;
 }
 
-fn getNextWeek(date: Date) Date {
-    const today = @enumToInt(date.dayOfWeek());
-    const start_of_next_week = 7 - today; // if today = 0, then it should increment 7
-    return date.add(Date {.days = start_of_next_week});
+fn getDayDifference(start: Date.DayOfWeek, end: Date.DayOfWeek) u32 {
+    const start_n = @intCast(u32, @enumToInt(start));
+    const end_n = @intCast(u32, @enumToInt(end));
+    std.debug.print("start: {d}\n", .{start_n});
+    std.debug.print("end: {d}\n", .{end_n});
+    if (start_n >= end_n) {
+        return 7 - (std.math.max(start_n, end_n) - std.math.min(start_n, end_n));
+    }
+    return end_n - start_n;
 }
 
-fn getNextMonth(date: Date) Date {
+fn getThisWeek(w: Date.DayOfWeek, date: Date) Date {
+    const diff = getDayDifference(date.dayOfWeek(), w);
+    std.debug.print("{d}\n", .{diff});
+    return date.add(Date {.days = diff});
+}
+
+fn getThisMonth(date: Date) Date {
     const isNewMonth = struct {
         pub fn isNewMonth(old: Date, new: Date) bool {
             return new.month() - 1 == old.month();

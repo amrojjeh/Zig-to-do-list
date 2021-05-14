@@ -4,6 +4,7 @@ const config = @import("config.zig");
 const parseTask = @import("parser.zig").parseTask;
 const Arguments = @import("args.zig");
 const Todo = @import("todo.zig");
+const Date = @import("date.zig");
 const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 
@@ -50,6 +51,11 @@ const Commands = &[_]Command {
     Command {
         .names = &[_][:0]const u8{"cleareverythingwithoutasking"}, // Clear all tasks, used for debug.
         .commandFn = clearAllTasks,
+    },
+
+    Command {
+        .names = &[_][:0]const u8{"today"},
+        .commandFn = today,
     },
 };
 
@@ -137,8 +143,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     const task = parseTask(&buffer, args) catch |err| {
         switch (err) {
-            error.InvalidMonth => try printFail("Invalid month.\n", .{}),
-            error.InvalidDay => try printFail("Invalid day.\n", .{}),
+            error.InvalidDate => try printFail("Invalid date.\n", .{}),
             error.AmbiguousAbbr => try printFail("Month name is ambiguous.\n", .{}),
             else => try printFail("Something went wrong...{any}\n", .{err}),
         }
@@ -237,6 +242,11 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
     defer todo.deinit();
     try io.save(todo);
     try printSuccess("👍 Deleted all tasks.\n", .{});
+}
+
+fn today(alloc: *Allocator, args: *Arguments) !void {
+    const now = Date.now();
+    try printNormal("Today is {s}: {s} {d}, {d}", .{@tagName(now.dayOfWeek()), now.monthName(), now.day(), now.year()});
 }
 
 // ======= HELPER FUNCTIONS =======
