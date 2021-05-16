@@ -29,6 +29,11 @@ const Command = struct {
 
 const Commands = &[_]Command {
     Command {
+        .names = &[_][:0]const u8{"add", "a"},
+        .commandFn = addTask,
+
+    },
+    Command {
         .names = &[_][:0]const u8{"list", "l"},
         .commandFn = list,
     },
@@ -65,11 +70,7 @@ pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
     };
 
     if (args.peek()) |arg| {
-        if (arg[0] == '-') {
             try runCommand(alloc, &args);
-        } else {
-            try addTask(alloc, &args);
-        }
     } else {
         try noArgs();
     }
@@ -79,7 +80,7 @@ fn runCommand(alloc: *Allocator, args: *Arguments) !void {
     const arg = args.peek().?;
     var buffer: [40]u8 = undefined;
     std.mem.copy(u8, &buffer, arg[0..arg.len]);
-    const str = buffer[1..arg.len]; // Remove the "-"
+    const str = buffer[0..arg.len];
     util.toLowerStr(str);
     inline for (Commands) |command| {
         inline for (command.names) |n| {
