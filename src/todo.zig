@@ -105,7 +105,7 @@ pub fn add(self: *Self, task: Task) !void {
     var it = self.tasks.first;
     while (it) |node| : (it = node.next) {
         const compare = node.data.compare(to_add.data);
-        if (largest_node_smaller_than_me == null and compare <= 0) {
+        if (compare <= 0) {
             largest_node_smaller_than_me = node;
         }
     }

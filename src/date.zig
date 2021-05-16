@@ -67,6 +67,8 @@ pub const DateError = error {
     InvalidDate,
 };
 
+/// m = 0 = January
+/// d = 0 = 1st
 pub fn init(y: u32, m: u32, d: u32) DateError!Self {
     if (m > 11) {
         return DateError.InvalidDate;
@@ -178,6 +180,7 @@ pub fn month(self: Self) usize {
 }
 
 /// Assumes normalized date
+/// Returns 1 if it's January 1st
 pub fn day(self: Self) i64 {
     const index = self.month();
     return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
@@ -298,12 +301,12 @@ test "date.monthName" {
         .seconds = 08,
     };
 
-    testing.expectEqualSlices(u8, "April", date.monthName());
+    testing.expectEqualSlices(u8, "april", date.monthName());
 }
 
 test "date.nameToMonth" {
     const name = "sept";
-    testing.expectEqual(Month.September, try nameToMonth(name));
+    testing.expectEqual(Month.september, (try nameToMonth(name)).?);
 }
 
 test "date.init" {
@@ -320,10 +323,10 @@ test "date.init" {
     }
 
     {
-        testing.expectError(DateError.InvalidMonth, init(1970, 12, 2));
-        // testing.expectError(DateError.InvalidMonth, init(1970, -1, 2));
-        testing.expectError(DateError.InvalidDay, init(1970, 1, 31));
-        // testing.expectError(DateError.InvalidDay, init(1970, 1, -1));
+        testing.expectError(DateError.InvalidDate, init(1970, 12, 2));
+        // testing.expectError(DateError.InvalidDate, init(1970, -1, 2));
+        testing.expectError(DateError.InvalidDate, init(1970, 1, 31));
+        // testing.expectError(DateError.InvalidDate, init(1970, 1, -1));
     }
 }
 
@@ -429,8 +432,8 @@ test "date.Get year, month, and day" {
 
     testing.expectEqual(@as(i64, 2021), date.year());
     testing.expectEqual(@as(usize, 3), date.month());
-    testing.expectEqual(@as(i64, 8), date.day());
-    testing.expectEqual(Month.April, @intToEnum(Month, @intCast(u4, date.month())));
+    testing.expectEqual(@as(i64, 9), date.day());
+    testing.expectEqual(Month.april, @intToEnum(Month, @intCast(u4, date.month())));
 }
 
 test "date.Timezones" {
@@ -449,5 +452,5 @@ test "date.Timezones" {
     testing.expectEqual(expected_date, cst_time);
     testing.expectEqual(@as(i64, 2021), cst_time.year());
     testing.expectEqual(@as(usize, 3), cst_time.month());
-    testing.expectEqual(@as(i64, 7), cst_time.day());
+    testing.expectEqual(@as(i64, 8), cst_time.day());
 }

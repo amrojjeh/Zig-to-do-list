@@ -98,3 +98,169 @@ pub fn isHashtag(word: []const u8) bool {
     return word[0] == '#' and word.len > 1;
 }
 
+
+test "task.compare not completed" {
+    { // Two equal dates
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        std.testing.expectEqual(@as(i64, 0), a.compare(b));
+    }
+
+    { // a is more urgent than b
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 16),
+            .completed = false,
+        };
+
+        std.testing.expect(a.compare(b) < 0);
+    }
+
+    { // a is less urgent than b
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 17),
+            .completed = false,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        std.testing.expect(a.compare(b) > 0);
+    }
+}
+
+test "task.compare completed" {
+    { // Two equal dates
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        std.testing.expectEqual(@as(i64, 0), a.compare(b));
+    }
+
+    { // a is more urgent than b
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 16),
+            .completed = true,
+        };
+
+        std.testing.expect(a.compare(b) < 0);
+    }
+
+    { // a is less urgent than b
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 17),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        std.testing.expect(a.compare(b) > 0);
+    }
+}
+
+test "test.compare completed & not completed" {
+    { // Equal dates - a is less urgent than b
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        std.testing.expect(a.compare(b) > 0);
+    }
+
+    { // a is more urgent than b, but a is completed
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 15),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 16),
+            .completed = false,
+        };
+
+        std.testing.expect(a.compare(b) > 0);
+    }
+
+    { // a is less urgent than b, and a is completed
+        const a = Self {
+            .content = "a",
+            .due = try Date.init(2021, 4, 17),
+            .completed = true,
+        };
+
+        const b = Self {
+            .content = "b",
+            .due = try Date.init(2021, 4, 15),
+            .completed = false,
+        };
+
+        std.testing.expect(a.compare(b) > 0);
+    }
+
+    { // Case test
+        const a = Self {
+            .content = "Chemistry #exam",
+            .due = try Date.init(2021, 4, 30),
+            .completed = false,
+        };
+
+        const b = Self {
+            .content = "book a vacation",
+            .due = try Date.init(2021, 4, 16),
+            .completed = true,
+        };
+
+        std.testing.expect(a.compare(b) < 0);
+    }
+}
