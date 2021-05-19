@@ -45,7 +45,7 @@ pub fn peek(self: *Self) TokenError!?Token {
             util.toLowerStr(buffer[0..arg.len]);
 
             inline for (Token.constants) |c| {
-                if (std.mem.eql(u8, @tagName(c), arg)) {
+                if (util.eqlNoCase(u8, @tagName(c), arg)) {
                     self.next_token = c;
                 }
             }
