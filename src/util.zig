@@ -20,6 +20,19 @@ test "util.enumFieldNames" {
     std.debug.assert(std.mem.eql(u8, names[1], "amazing"));
 }
 
+pub fn unionCreateFieldsWithType(comptime u: type, comptime t: type, comptime val: t) []u {
+    const len = @typeInfo(u).Union.fields.len;
+    var fields: [len]u = undefined;
+    var index: comptime_int = 0;
+    inline for (@typeInfo(u).Union.fields) |f, i| {
+        if (f.field_type == t) {
+            fields[index] = @unionInit(u, f.name, val);
+            index += 1;
+        }
+    }
+    return fields[0..index];
+}
+
 pub fn eqlNoCase(comptime T: type, a: []const T, b:[]const T) bool {
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;

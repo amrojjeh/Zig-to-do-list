@@ -137,6 +137,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
 }
 
 fn addTask(alloc: *Allocator, args: *Arguments) !void {
+    _ = args.next();
     var todo: Todo = (try io.read(alloc)) orelse Todo.init(alloc);
     defer todo.deinit();
 
@@ -277,7 +278,7 @@ fn print(style: []const u8, comptime str: []const u8, args: anytype) !void {
     const writer = getWriter();
     try writer.print("{s}", .{style});
     try writer.print(str, args);
-    try writer.print("{s}", .{Styles.RESET});    
+    try writer.print("{s}", .{Styles.RESET});
 }
 
 fn nextArgIndex(comptime T: type, args: *Arguments) !?T {

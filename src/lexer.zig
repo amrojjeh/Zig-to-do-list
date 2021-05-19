@@ -18,6 +18,7 @@ const Token = union(enum) {
 
     // Constants
     this,
+    next,
 
     week,
     month,
@@ -28,7 +29,7 @@ const Token = union(enum) {
 
 
     // If it's a type void, it's a constant
-    pub const constants = [_]Token{Token.week, Token.this, Token.month, Token.year, Token.today, Token.tomorrow};
+    pub const constants = util.unionCreateFieldsWithType(Token, void, {});
 };
 
 // Tokens which are the same name as written in input
