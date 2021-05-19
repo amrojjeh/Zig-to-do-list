@@ -12,6 +12,7 @@ const ParseError = Lexer.TokenError || error {
     ExpectedMonth,
     ExpectedYear,
     ExpectedNext,
+    ExpectedThis,
     ExpectedDuration,
     MonthDoesNotExist,
     DayOutOfRange,
@@ -38,6 +39,7 @@ fn root(lex: *Lexer) ParseError!?Date {
         return switch (val) {
             .month_name => try monthDayFormat(lex),
             .this => try this(lex),
+            .next => try next(lex),
             .tomorrow => tomorrow(),
             .today => today(),
             else => ParseError.ExpectedMonth,
@@ -50,7 +52,7 @@ fn noDueDate(lex: *Lexer) ?Date {
 }
 
 fn this(lex: *Lexer) ParseError!Date {
-    _ = (try lex.next()) orelse return ParseError.ExpectedNext;
+    _ = (try lex.next()) orelse return ParseError.ExpectedThis;
     const t = try lex.next();
     if (t) |val| {
         return switch (val) {
@@ -59,14 +61,34 @@ fn this(lex: *Lexer) ParseError!Date {
             .week_day_name => |d| getThisWeek(d, Date.now()),
             else => ParseError.ExpectedDuration,
         };
+    } else return ParseError.ExpectedThis;
+}
+
+fn next(lex: *Lexer) ParseError!Date {
+    _ = (try lex.next()) orelse return ParseError.ExpectedNext;
+    const t = try lex.next();
+    if (t) |val| {
+        return switch (val) {
+            .week => getNextWeek(Date.DayOfWeek.saturday, Date.now()),
+            .month => getNextMonth(Date.now()),
+            .week_day_name => |d| getThisWeek(d, Date.now()),
+            else => ParseError.ExpectedDuration,
+        };
     } else return ParseError.ExpectedNext;
+}
+
+fn getNextWeek(w: Date.DayOfWeek, date: Date) Date {
+    const endOfThisWeek = getThisWeek(w, date);
+    return endOfThisWeek.add(Date {.days = 7});
+}
+
+fn getNextMonth(date: Date) Date {
+    return getThisMonth(getThisMonth(date));
 }
 
 fn getDayDifference(start: Date.DayOfWeek, end: Date.DayOfWeek) u32 {
     const start_n = @intCast(u32, @enumToInt(start));
     const end_n = @intCast(u32, @enumToInt(end));
-    std.debug.print("start: {d}\n", .{start_n});
-    std.debug.print("end: {d}\n", .{end_n});
     if (start_n >= end_n) {
         return 7 - (std.math.max(start_n, end_n) - std.math.min(start_n, end_n));
     }
@@ -75,7 +97,6 @@ fn getDayDifference(start: Date.DayOfWeek, end: Date.DayOfWeek) u32 {
 
 fn getThisWeek(w: Date.DayOfWeek, date: Date) Date {
     const diff = getDayDifference(date.dayOfWeek(), w);
-    std.debug.print("{d}\n", .{diff});
     return date.add(Date {.days = diff});
 }
 
