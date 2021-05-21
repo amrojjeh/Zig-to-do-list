@@ -153,7 +153,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
 
     var buffer: [config.MAX_LINE]u8 = undefined;
 
-    const task = parseTask(&buffer, args) catch |err| {
+    const task = parseTask(&buffer, todo.timezone, args) catch |err| {
         switch (err) {
             error.InvalidDate => try printFail("Invalid date.\n", .{}),
             error.AmbiguousAbbr => try printFail("Month name is ambiguous.\n", .{}),

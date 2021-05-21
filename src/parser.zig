@@ -19,12 +19,12 @@ const ParseError = Lexer.TokenError || error {
 };
 
 /// Used to parse tasks from the command line argument.
-pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
+pub fn parseTask(buffer: []u8, timezone: Date.Timezone, args: *Arguments) ParseError!Task {
     var lex = Lexer { .args = args, };
 
     const content = readContent(buffer, args);
 
-    const due = try root(&lex);
+    const due = try root(&lex, timezone);
 
     return Task {
         .content = content,
@@ -33,15 +33,15 @@ pub fn parseTask(buffer: []u8, args: *Arguments) ParseError!Task {
     };
 }
 
-fn root(lex: *Lexer) ParseError!?Date {
+fn root(lex: *Lexer, timezone: Date.Timezone) ParseError!?Date {
     const t = try lex.peek();
     if (t) |val| {
         return switch (val) {
             .month_name => try monthDayFormat(lex),
             .this => try this(lex),
             .next => try next(lex),
-            .tomorrow => tomorrow(),
-            .today => today(),
+            .tomorrow => tomorrow(timezone),
+            .today => today(timezone),
             else => ParseError.ExpectedMonth,
         };
     } else return noDueDate(lex);
@@ -112,12 +112,18 @@ fn getThisMonth(date: Date) Date {
     return date.add(Date {.days = 1 + days_in_month - t});
 }
 
-fn tomorrow() Date {
-    return Date.now().flatten().add(Date {.days = 1});
+fn tomorrow(timezone: Date.Timezone) Date {
+    return (Date.DateWithTimezone {
+        .date = Date.now().add(Date {.days = 1}),
+        .timezone = timezone,
+    }).flatten();
 }
 
-fn today() Date {
-    return Date.now().flatten();
+fn today(timezone: Date.Timezone) Date {
+    return (Date.DateWithTimezone {
+        .date = Date.now(),
+        .timezone = timezone,
+    }).flatten();
 }
 
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
