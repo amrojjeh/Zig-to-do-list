@@ -9,6 +9,7 @@ const Self = @This();
 
 alloc: *Allocator,
 tasks: Tasks,
+timezone: Date.Timezone,
 
 pub const Parser = struct {
     pub const seperator = "\x01";
@@ -23,6 +24,15 @@ pub const Parser = struct {
         var i: usize = 0;
         var tail: usize = 0;
         const size = util.tailQueueLen(self.tasks);
+
+        // Saving timezone and daylight
+        {
+            var line = buffer[tail .. 10];
+            const printed = try std.fmt.bufPrint(line, "{d}\n{d}\n", .{self.timezone.offset.hours, if (self.timezone.daylight) @as(u8, 1) else @as(u8, 0)});
+            tail += printed.len;
+        }
+        
+
         while (i < size) : (i += 1) {
             var line = buffer[tail .. (1+i)*100];
             const task = todo_iter.?.data;
@@ -63,6 +73,19 @@ pub const Parser = struct {
 
         var todo = init(allocator);
         var lines = std.mem.tokenize(buffer, "\n");
+        if (lines.next()) |offset| {
+            todo.timezone = Date.Timezone {
+                .offset = Date {
+                    .hours = try std.fmt.parseInt(i64, offset, 10),
+                },
+                .daylight = false,
+            };
+        }
+
+        if (lines.next()) |daylight| {
+            todo.timezone.daylight = (try std.fmt.parseInt(u8, daylight, 10)) != 0;
+        }
+
         while (lines.next()) |line| {
             var tokens = std.mem.tokenize(line, seperator);
             const content: []const u8 = tokens.next().?;
@@ -82,6 +105,10 @@ pub fn init(allocator: *Allocator) Self {
     return Self {
         .alloc = allocator,
         .tasks = Tasks{},
+        .timezone = Date.Timezone {
+            .offset = Date.Timezone.utc,
+            .daylight = false,
+        },
     };
 }
 

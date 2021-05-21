@@ -247,8 +247,12 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
 }
 
 fn today(alloc: *Allocator, args: *Arguments) !void {
-    const now = Date.now();
-    try printNormal("Today is {any}", .{now});
+    const todo = (try io.read(alloc)) orelse Todo.init(alloc);
+    const now = Date.DateWithTimezone {
+        .date = Date.now(),
+        .timezone = todo.timezone,
+    };
+    try printNormal("Today is {any}, UTC{s}{d}", .{now.dateWithTimezone(), if (todo.timezone.offset.hours < 0) "-" else "+", try std.math.absInt(todo.timezone.offset.hours)});
 }
 
 // ======= HELPER FUNCTIONS =======

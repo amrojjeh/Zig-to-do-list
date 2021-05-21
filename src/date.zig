@@ -13,8 +13,7 @@ const Self = @This();
 const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-pub const DateWithTimezone = struct {
-    date: Self,
+pub const Timezone = struct {
     offset: Self,
     daylight: bool,
 
@@ -25,16 +24,21 @@ pub const DateWithTimezone = struct {
     pub const cst = Self {
         .hours = -6,
     };
+};
+
+pub const DateWithTimezone = struct {
+    date: Self,
+    timezone: Timezone,
 
     pub fn flatten(self: DateWithTimezone) Self {
         return self.dateWithTimezone().flatten();
     }
 
     pub fn dateWithTimezone(self: DateWithTimezone) Self {
-        if (self.daylight) {
-            return self.date.add(self.offset).add(Self {.hours = 1});
+        if (self.timezone.daylight) {
+            return self.date.add(self.timezone.offset).add(Self {.hours = 1});
         } else {
-            return self.date.add(self.offset);
+            return self.date.add(self.timezone.offset);
         }
     }
 };
@@ -476,8 +480,10 @@ test "date.Get year, month, and day" {
 test "date.Timezones" {
     const date = DateWithTimezone {
         .date = (try Self.init(2021, 04, 20)).add(Self {.hours = 3}),
-        .offset = DateWithTimezone.cst,
-        .daylight = true,
+        .timezone =  Timezone {
+            .offset = Timezone.cst,
+            .daylight = true,
+        },
     };
 
     const expected_date = (try Self.init(2021, 04, 19)).add(Self {.hours = 22});
