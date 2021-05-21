@@ -13,6 +13,32 @@ const Self = @This();
 const leap_year_months = [_]i64{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const normal_year_months = [_]i64{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+pub const DateWithTimezone = struct {
+    date: Self,
+    offset: Self,
+    daylight: bool,
+
+    pub const utc = Self {
+        .hours = 0,
+    };
+
+    pub const cst = Self {
+        .hours = -6,
+    };
+
+    pub fn flatten(self: DateWithTimezone) Self {
+        return self.dateWithTimezone().flatten();
+    }
+
+    pub fn dateWithTimezone(self: DateWithTimezone) Self {
+        if (self.daylight) {
+            return self.date.add(self.offset).add(Self {.hours = 1});
+        } else {
+            return self.date.add(self.offset);
+        }
+    }
+};
+
 pub const Month = enum {
     january,
     february,
@@ -250,14 +276,6 @@ pub fn normalize(self: Self) Self {
     };
 }
 
-/// Handles timezones
-pub fn utc(self: Self, hours: i64, minutes: i64) Self {
-    return self.add(Self {
-        .hours = hours,
-        .minutes = minutes,
-        });
-}
-
 /// If result > 0, then self > other, aka later
 /// if result == 0, then self == other, aka same
 /// else, result < other, aka sooner
@@ -456,20 +474,16 @@ test "date.Get year, month, and day" {
 }
 
 test "date.Timezones" {
-    const date = Self {
-        .days = 18726,
-        .hours = 1,
+    const date = DateWithTimezone {
+        .date = (try Self.init(2021, 04, 20)).add(Self {.hours = 3}),
+        .offset = DateWithTimezone.cst,
+        .daylight = true,
     };
 
-    // No daylight savings
-    const cst_time = date.utc(-6, 0);
-    const expected_date = Self {
-        .days = 18726 - 1,
-        .hours = 19,
-    };
+    const expected_date = (try Self.init(2021, 04, 19)).add(Self {.hours = 22});
 
-    testing.expectEqual(expected_date, cst_time);
-    testing.expectEqual(@as(i64, 2021), cst_time.year());
-    testing.expectEqual(@as(usize, 3), cst_time.month());
-    testing.expectEqual(@as(i64, 7), cst_time.day());
+    testing.expectEqual(expected_date, date.dateWithTimezone());
+    testing.expectEqual(@as(i64, 2021), date.flatten().year());
+    testing.expectEqual(@as(usize, 4), date.flatten().month());
+    testing.expectEqual(@as(i64, 19), date.flatten().day());
 }
