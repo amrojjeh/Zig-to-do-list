@@ -310,15 +310,15 @@ fn newline() !void {
 }
 
 /// Prints a failed statement.
-fn printFail(comptime str: []const u8, args: anytype) !void {
+pub fn printFail(comptime str: []const u8, args: anytype) !void {
     try print(Styles.FAIL, str, args);
 }
 
-fn printSuccess(comptime str: []const u8, args: anytype) !void {
+pub fn printSuccess(comptime str: []const u8, args: anytype) !void {
     try print(Styles.SUCCESS, str, args);
 }
 
-fn printNormal(comptime str: []const u8, args: anytype) !void {
+pub fn printNormal(comptime str: []const u8, args: anytype) !void {
     try print(Styles.NORMAL, str, args);
 }
 

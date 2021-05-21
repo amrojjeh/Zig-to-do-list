@@ -33,7 +33,10 @@ pub fn read(allocator: *Allocator) !?Todo {
     const file = dir.openFile(config.FILE_NAME, OpenFlags {}) catch return null;
     const tail = try file.reader().read(buffer);
     buffer[tail] = 0;
-    return try Todo.Parser.parse(allocator, buffer[0..tail:0]);
+    return Todo.Parser.parse(allocator, buffer[0..tail:0]) catch blk: {
+        try @import("cli.zig").printFail("File {s} is corrupted.\n", .{config.FILE_NAME});
+        break :blk null;
+    };
 }
 
 pub fn delete(self: Self) Dir.DeleteFileError!void {
