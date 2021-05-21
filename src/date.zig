@@ -98,7 +98,7 @@ pub fn epochToDate(unix_time: i64) Self {
     const minutes_since_last_day = seconds_since_last_day / 60;
     const hours_since_last_day = minutes_since_last_day / 60;
 
-    const days_since_epoch = @floatToInt(i64, seconds_since_epoch / time.s_per_day);
+    const days_since_epoch = @floatToInt(i64, seconds_since_epoch / time.s_per_day) - 1;
     const hours = @floatToInt(i64, hours_since_last_day);
     const minutes = @floatToInt(i64, minutes_since_last_day) - hours * 60;
     const seconds = @floatToInt(i64, seconds_since_last_day) - hours * 3600 - minutes * 60;
@@ -180,10 +180,10 @@ pub fn month(self: Self) usize {
 }
 
 /// Assumes normalized date
-/// Returns 1 if it's January 1st
+/// Returns 0 if it's January 1st
 pub fn day(self: Self) i64 {
     const index = self.month();
-    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
+    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear() - 1;
 }
 
 /// Assumes normalized date
@@ -271,7 +271,7 @@ pub fn format(
     options: std.fmt.FormatOptions,
     writer: anytype
 ) !void {
-    try writer.print("{s}: {s} {d}, {d}", .{@tagName(self.dayOfWeek()), self.monthName(), self.day(), self.year()});
+    try writer.print("{s}: {s} {d}, {d}", .{@tagName(self.dayOfWeek()), self.monthName(), self.day() + 1, self.year()});
 }
 
 fn indexBeforeSumExceedsValue(val: i64, list: []const i64) usize {
@@ -314,6 +314,7 @@ test "date.init" {
         const date = try init(1970, 0, 0);
         const expected = Self {};
         testing.expectEqual(expected, date);
+        testing.expectEqual(DayOfWeek.thursday, date.dayOfWeek());
     }
 
     {
@@ -432,7 +433,7 @@ test "date.Get year, month, and day" {
 
     testing.expectEqual(@as(i64, 2021), date.year());
     testing.expectEqual(@as(usize, 3), date.month());
-    testing.expectEqual(@as(i64, 9), date.day());
+    testing.expectEqual(@as(i64, 8), date.day());
     testing.expectEqual(Month.april, @intToEnum(Month, @intCast(u4, date.month())));
 }
 
@@ -452,5 +453,5 @@ test "date.Timezones" {
     testing.expectEqual(expected_date, cst_time);
     testing.expectEqual(@as(i64, 2021), cst_time.year());
     testing.expectEqual(@as(usize, 3), cst_time.month());
-    testing.expectEqual(@as(i64, 8), cst_time.day());
+    testing.expectEqual(@as(i64, 7), cst_time.day());
 }

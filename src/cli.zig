@@ -248,7 +248,7 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
 
 fn today(alloc: *Allocator, args: *Arguments) !void {
     const now = Date.now();
-    try printNormal("Today is {s}: {s} {d}, {d}", .{@tagName(now.dayOfWeek()), now.monthName(), now.day(), now.year()});
+    try printNormal("Today is {any}", .{now});
 }
 
 // ======= HELPER FUNCTIONS =======

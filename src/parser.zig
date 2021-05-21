@@ -150,7 +150,7 @@ fn day(lex: *Lexer) ParseError!u32 {
     const t = try lex.next();
     if (t) |val| {
         switch (val) {
-            .number => |n| return n,
+            .number => |n| return n - 1,
             else => return ParseError.ExpectedDay,
         }
     } else return ParseError.ExpectedDay;
