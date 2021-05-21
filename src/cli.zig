@@ -59,9 +59,19 @@ const Commands = &[_]Command {
     },
 
     Command {
-        .names = &[_][:0]const u8{"today"},
-        .commandFn = today,
+        .names = &[_][:0]const u8{"now"},
+        .commandFn = now,
     },
+
+    Command {
+        .names = &[_][:0]const u8{"utc"},
+        .commandFn = utc,
+    },
+
+    Command {
+        .names = &[_][:0]const u8{"daylight"},
+        .commandFn = daylight,
+    }
 };
 
 pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
@@ -246,13 +256,47 @@ fn clearAllTasks(alloc: *Allocator, args: *Arguments) !void {
     try printSuccess("👍 Deleted all tasks.\n", .{});
 }
 
-fn today(alloc: *Allocator, args: *Arguments) !void {
+fn now(alloc: *Allocator, args: *Arguments) !void {
     const todo = (try io.read(alloc)) orelse Todo.init(alloc);
-    const now = Date.DateWithTimezone {
+    const date = (Date.DateWithTimezone {
         .date = Date.now(),
         .timezone = todo.timezone,
+    }).dateWithTimezone();
+    try printNormal("Now: {any} {d:0>2}h{d:0>2}:{d:0>2}, UTC{d:2}", .{date, @intCast(u8, date.hours), @intCast(u8, date.minutes), @intCast(u8, date.seconds), todo.timezone.offset.hours});
+}
+
+fn utc(alloc: *Allocator, args: *Arguments) !void {
+    _ = args.next();
+    var todo = (try io.read(alloc)) orelse Todo.init(alloc);
+    const arg = args.next() orelse {
+        try printFail("Expected an integer\n", .{});
+        return;
     };
-    try printNormal("Today is {any}, UTC{s}{d}", .{now.dateWithTimezone(), if (todo.timezone.offset.hours < 0) "-" else "+", try std.math.absInt(todo.timezone.offset.hours)});
+    const input = std.fmt.parseInt(i64, arg, 10) catch {
+        try printFail("Expected an integer\n", .{});
+        return;
+    };
+
+    todo.timezone.offset.hours = input;
+    try now(alloc, args);
+    try io.save(todo);
+}
+
+fn daylight(alloc: *Allocator, args: *Arguments) !void {
+    _ = args.next();
+    var todo = (try io.read(alloc)) orelse Todo.init(alloc);
+    const arg = args.next() orelse {
+        try printFail("Expected an integer\n", .{});
+        return;
+    };
+    const input = std.fmt.parseInt(i64, arg, 10) catch {
+        try printFail("Expected an integer\n", .{});
+        return;
+    };
+
+    todo.timezone.daylight = (input != 0);
+    try now(alloc, args);
+    try io.save(todo);
 }
 
 // ======= HELPER FUNCTIONS =======
