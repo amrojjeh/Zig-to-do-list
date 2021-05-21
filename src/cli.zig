@@ -262,7 +262,11 @@ fn now(alloc: *Allocator, args: *Arguments) !void {
         .date = Date.now(),
         .timezone = todo.timezone,
     }).dateWithTimezone();
-    try printNormal("Now: {any} {d:0>2}h{d:0>2}:{d:0>2}, UTC{d:2}", .{date, @intCast(u8, date.hours), @intCast(u8, date.minutes), @intCast(u8, date.seconds), todo.timezone.offset.hours});
+    const daylight_str: []const u8 = if (todo.timezone.daylight) "(daylight)"[0..] else " "[0..];
+    try printNormal("Now: {any} {d:0>2}h{d:0>2}:{d:0>2}, UTC{d:2} {s}", .{
+        date, @intCast(u8, date.hours), @intCast(u8, date.minutes), @intCast(u8, date.seconds),
+        todo.timezone.offset.hours + if (todo.timezone.daylight) @as(i64, 1) else @as(i64, 0),
+        daylight_str});
 }
 
 fn utc(alloc: *Allocator, args: *Arguments) !void {
@@ -278,8 +282,8 @@ fn utc(alloc: *Allocator, args: *Arguments) !void {
     };
 
     todo.timezone.offset.hours = input;
-    try now(alloc, args);
     try io.save(todo);
+    try now(alloc, args);
 }
 
 fn daylight(alloc: *Allocator, args: *Arguments) !void {
@@ -295,8 +299,8 @@ fn daylight(alloc: *Allocator, args: *Arguments) !void {
     };
 
     todo.timezone.daylight = (input != 0);
-    try now(alloc, args);
     try io.save(todo);
+    try now(alloc, args);
 }
 
 // ======= HELPER FUNCTIONS =======

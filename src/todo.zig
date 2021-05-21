@@ -28,7 +28,8 @@ pub const Parser = struct {
         // Saving timezone and daylight
         {
             var line = buffer[tail .. 10];
-            const printed = try std.fmt.bufPrint(line, "{d}\n{d}\n", .{self.timezone.offset.hours, if (self.timezone.daylight) @as(u8, 1) else @as(u8, 0)});
+            const daylight: u8 = if (self.timezone.daylight) 1 else 0;
+            const printed = try std.fmt.bufPrint(line, "{d}\n{d}\n", .{self.timezone.offset.hours, daylight});
             tail += printed.len;
         }
         
