@@ -11,12 +11,3 @@ pub fn main() !void {
 
     try cli.execute(allocator, args[1..]);
 }
-
-pub fn help() void {
-    std.debug.print(
-        \\Welcome to the To-Do List!
-        \\=== Examples ===
-        \\todo Literature Review : Adds lit review as a task
-        \\todo Literature Review due Wednesday: Adds lit review as a task which is due Wednesday
-    , .{});
-}

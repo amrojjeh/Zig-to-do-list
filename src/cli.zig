@@ -71,6 +71,11 @@ const Commands = &[_]Command {
     Command {
         .names = &[_][:0]const u8{"daylight"},
         .commandFn = daylight,
+    },
+
+    Command {
+        .names = &[_][:0]const u8{"help"},
+        .commandFn = help,
     }
 };
 
@@ -82,7 +87,7 @@ pub fn execute(alloc: *Allocator, raw_args: [][:0]const u8) !void {
     if (args.peek()) |arg| {
             try runCommand(alloc, &args);
     } else {
-        try noArgs();
+        try noArgs(alloc, &args);
     }
 }
 
@@ -108,8 +113,9 @@ fn commandDoesNotExist(commandName: []const u8) !void {
     try printFail("Command {s} does not exist.\n", .{commandName});
 }
 
-fn noArgs() !void {
+fn noArgs(alloc: *Allocator, args: *Arguments) !void {
     try printFail("No arguments passed. Running help command...\n", .{});
+    try help(alloc, args);
 }
 
 fn list(alloc: *Allocator, args: *Arguments) !void {
@@ -301,6 +307,41 @@ fn daylight(alloc: *Allocator, args: *Arguments) !void {
     todo.timezone.daylight = (input != 0);
     try io.save(todo);
     try now(alloc, args);
+}
+
+fn help(alloc: *Allocator, args: *Arguments) !void {
+    try printSuccess("Add tasks: ", .{});
+    try printNormal("todo add adding a new task\n", .{});
+
+    try printSuccess("Add tasks with a due date: ", .{});
+    try printNormal("todo add this task is due on may 24 ; may 24\n", .{});
+
+    try printSuccess("Other ways to add tasks: ", .{});
+    try printNormal("todo add this is due tomorrow (today) (next week) (this month)... ; tomorrow\n", .{});
+
+    try printSuccess("List tasks: ", .{});
+    try printNormal("todo list\n", .{});
+
+    try printSuccess("Search tasks: ", .{});
+    try printNormal("todo list keyword1 keyword2...\n", .{});
+
+    try printSuccess("Complete tasks: ", .{});
+    try printNormal("todo complete 3\n", .{});
+
+    try printSuccess("Remove tasks: ", .{});
+    try printNormal("todo remove 3\n", .{});
+
+    try printSuccess("Set the timezone: ", .{});
+    try printNormal("todo utc -5\n", .{});
+
+    try printSuccess("Enable daylight savings: ", .{});
+    try printNormal("todo daylight 1\n", .{});
+
+    try printSuccess("Display current time: ", .{});
+    try printNormal("todo now\n", .{});
+
+    try printSuccess("Display hashtags: ", .{});
+    try printNormal("todo count\n", .{});
 }
 
 // ======= HELPER FUNCTIONS =======
