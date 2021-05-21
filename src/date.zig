@@ -75,7 +75,7 @@ pub fn init(y: u32, m: u32, d: u32) DateError!Self {
     }
     const months = if (isLeapYear(y)) leap_year_months else normal_year_months;
 
-    if (d > months[m]) {
+    if (d >= months[m]) {
         return DateError.InvalidDate;
     }
 
@@ -98,7 +98,7 @@ pub fn epochToDate(unix_time: i64) Self {
     const minutes_since_last_day = seconds_since_last_day / 60;
     const hours_since_last_day = minutes_since_last_day / 60;
 
-    const days_since_epoch = @floatToInt(i64, seconds_since_epoch / time.s_per_day) - 1;
+    const days_since_epoch = @floatToInt(i64, seconds_since_epoch / time.s_per_day);
     const hours = @floatToInt(i64, hours_since_last_day);
     const minutes = @floatToInt(i64, minutes_since_last_day) - hours * 60;
     const seconds = @floatToInt(i64, seconds_since_last_day) - hours * 3600 - minutes * 60;
@@ -161,7 +161,7 @@ pub fn dayOfYear(self: Self) i64 {
 }
 
 fn dayToLastYear(self: Self) i64 {
-    return @floatToInt(i64, @intToFloat(f64, self.year() - 1970) * 365.24);
+    return @floatToInt(i64, @ceil(@intToFloat(f64, self.year() - 1970) * 365.24));
 }
 
 /// Get the year
@@ -183,7 +183,7 @@ pub fn month(self: Self) usize {
 /// Returns 0 if it's January 1st
 pub fn day(self: Self) i64 {
     const index = self.month();
-    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear() - 1;
+    return self.days - sum(self.yearMonths()[0..index]) - self.dayToLastYear();
 }
 
 /// Assumes normalized date
@@ -315,12 +315,15 @@ test "date.init" {
         const expected = Self {};
         testing.expectEqual(expected, date);
         testing.expectEqual(DayOfWeek.thursday, date.dayOfWeek());
+        testing.expectEqual(@as(i64, 0), date.day());
     }
 
     {
         const date = try init(1970, 1, 1);
         const expected = Self { .days = 31 + 1 };
         testing.expectEqual(expected, date);
+        testing.expectEqual(DayOfWeek.monday, date.dayOfWeek());
+        testing.expectEqual(@as(i64, 1), date.day());
     }
 
     {
@@ -343,17 +346,29 @@ test "date.Index before sum exceeds value" {
 }
 
 test "date.Epoch To Date" {
-    const epoch: i64 = 1617889448;
-    const date = epochToDate(epoch);
+    {
+        const epoch: i64 = 1617889448;
+        const date = epochToDate(epoch);
 
-    const expectedDate = Self {
-        .days = 18725,
-        .hours = 13,
-        .minutes = 44,
-        .seconds = 08,
-    };
+        const expectedDate = Self {
+            .days = 18725,
+            .hours = 13,
+            .minutes = 44,
+            .seconds = 08,
+        };
 
-    testing.expectEqual(expectedDate, date);
+        testing.expectEqual(expectedDate, date);
+        testing.expectEqual(@as(usize, 3), date.month());
+        testing.expectEqual(@as(i64, 7), date.day());
+    }
+    {
+        const epoch: i64 = 1621595250;
+        const date = epochToDate(epoch);
+
+        testing.expectEqual(@as(i64, 2021), date.year());
+        testing.expectEqual(@as(usize, 4), date.month());
+        testing.expectEqual(@as(i64, 20), date.day());
+    }
 }
 
 test "date.Normalize" {
@@ -424,17 +439,20 @@ test "date.Adding date" {
 }
 
 test "date.Get year, month, and day" {
-    const date = Self {
-        .days = 18726,
-        .hours = 13,
-        .minutes = 44,
-        .seconds = 08,
-    };
+    {
+        const date = Self {
+            .days = 18767,
+            .hours = 13,
+            .minutes = 44,
+            .seconds = 08,
+        };
 
-    testing.expectEqual(@as(i64, 2021), date.year());
-    testing.expectEqual(@as(usize, 3), date.month());
-    testing.expectEqual(@as(i64, 8), date.day());
-    testing.expectEqual(Month.april, @intToEnum(Month, @intCast(u4, date.month())));
+        testing.expectEqual(@as(i64, 2021), date.year());
+        testing.expectEqual(@as(usize, 4), date.month());
+        testing.expectEqual(@as(i64, 19), date.day());
+        testing.expectEqual(Month.may, @intToEnum(Month, @intCast(u4, date.month())));
+
+    }
 }
 
 test "date.Timezones" {
