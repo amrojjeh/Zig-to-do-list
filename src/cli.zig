@@ -146,7 +146,7 @@ fn list(alloc: *Allocator, args: *Arguments) !void {
     var index: usize = 1;
     while (it) |node| : (it = node.next) {
         try printNormal("{d}. ", .{node.data.index.?});
-        try TaskPrinter.p(node.data, true);
+        try TaskPrinter.p(todo, node.data, true);
         try newline();
         index += 1;
     }
@@ -172,7 +172,7 @@ fn addTask(alloc: *Allocator, args: *Arguments) !void {
     try io.save(todo);
 
     try printSuccess("Added task.\n", .{});
-    try TaskPrinter.p(task, false);
+    try TaskPrinter.p(todo, task, false);
     try newline();
 }
 
@@ -197,7 +197,7 @@ fn removeTask(alloc: *Allocator, args: *Arguments) !void {
     }; defer alloc.destroy(removed);
 
     try printSuccess("Removed task\n", .{});
-    try TaskPrinter.p(removed.data, true);
+    try TaskPrinter.p(todo, removed.data, true);
     try newline();
     try io.save(todo);
 }
@@ -218,7 +218,7 @@ fn completeTask(alloc: *Allocator, args: *Arguments) !void {
     };
 
     node.data.completed = !node.data.completed;
-    try TaskPrinter.p(node.data, true);
+    try TaskPrinter.p(todo, node.data, true);
     try newline();
 
     try io.save(todo);
@@ -386,7 +386,7 @@ fn nextArgIndex(comptime T: type, args: *Arguments) !?T {
 // ======= PRINTING OBJECTS =====
 
 const TaskPrinter = struct {
-    pub fn p(task: Todo.Task, checkmark: bool) !void {
+    pub fn p(todo: Todo, task: Todo.Task, checkmark: bool) !void {
         const completed_str = blk: {
             if (checkmark) {
                 break :blk if (task.completed) "✅ " else "❌ ";
@@ -396,7 +396,7 @@ const TaskPrinter = struct {
         try printNormal("{s}", .{completed_str});
         try pretty_content(task);
         if (task.due) |date| {
-            try printNormal("📅 {any}", .{date});
+            try printNormal("📅 {any}", .{(Date.DateWithTimezone {.date = date, .timezone = todo.timezone,}).flatten()});
         }
     }
 

@@ -113,17 +113,11 @@ fn getThisMonth(date: Date) Date {
 }
 
 fn tomorrow(timezone: Date.Timezone) Date {
-    return (Date.DateWithTimezone {
-        .date = Date.now().add(Date {.days = 1}),
-        .timezone = timezone,
-    }).flatten();
+    return Date.now().add(Date {.days = 1}).flatten();
 }
 
 fn today(timezone: Date.Timezone) Date {
-    return (Date.DateWithTimezone {
-        .date = Date.now(),
-        .timezone = timezone,
-    }).flatten();
+    return Date.now().flatten();
 }
 
 fn monthDayFormat(lex: *Lexer) ParseError!Date {
