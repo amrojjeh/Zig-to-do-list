@@ -27,7 +27,7 @@ pub const Timezone = struct {
 };
 
 pub const DateWithTimezone = struct {
-    date: Self,
+    date: Self, // assumed to be UTC-0
     timezone: Timezone,
 
     pub fn flatten(self: DateWithTimezone) Self {
@@ -242,6 +242,16 @@ pub fn add(self: Self, other: Self) Self {
     };
 
     return result.normalize();
+}
+
+/// If a date is NOT in UTC, convert it by specifying the timezone which represents the date
+pub fn toUtc(self: Self, timezone: Timezone) Self {
+    return (Self {
+        .days = self.days - timezone.offset.days,
+        .hours = self.hours - timezone.offset.hours - (if (timezone.daylight) @as(i64, 1) else @as(i64, 0)),
+        .minutes = self.minutes - timezone.offset.minutes,
+        .seconds = self.seconds - timezone.offset.seconds,
+    }).normalize();
 }
 
 /// Normalizes a date, so that all values are within their range

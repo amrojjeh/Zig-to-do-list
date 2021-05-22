@@ -37,11 +37,11 @@ fn root(lex: *Lexer, timezone: Date.Timezone) ParseError!?Date {
     const t = try lex.peek();
     if (t) |val| {
         return switch (val) {
-            .month_name => try monthDayFormat(lex),
+            .month_name => try monthDayFormat(lex, timezone),
             .this => try this(lex),
             .next => try next(lex),
-            .tomorrow => tomorrow(timezone),
-            .today => today(timezone),
+            .tomorrow => tomorrow(),
+            .today => today(),
             else => ParseError.ExpectedMonth,
         };
     } else return noDueDate(lex);
@@ -112,15 +112,15 @@ fn getThisMonth(date: Date) Date {
     return date.add(Date {.days = 1 + days_in_month - t});
 }
 
-fn tomorrow(timezone: Date.Timezone) Date {
+fn tomorrow() Date {
     return Date.now().add(Date {.days = 1}).flatten();
 }
 
-fn today(timezone: Date.Timezone) Date {
+fn today() Date {
     return Date.now().flatten();
 }
 
-fn monthDayFormat(lex: *Lexer) ParseError!Date {
+fn monthDayFormat(lex: *Lexer, timezone: Date.Timezone) ParseError!Date {
     const m = try month(lex);
     const d = try day(lex);
     const y = blk: {
@@ -133,7 +133,9 @@ fn monthDayFormat(lex: *Lexer) ParseError!Date {
             break :blk now.year() + if (useSmartYearAssumption) @as(u32, 1) else @as(u32, 0);
         }
     };
-    return try Date.init(y, m, d);
+    // When user enters may 26, it's implied that it's may 26 00:00:00 CST (or any other timezone).
+    // So, we must convert it to UTC, so that the formatting doesn't screw up.
+    return (try Date.init(y, m, d)).toUtc(timezone);
 }
 
 fn month(lex: *Lexer) ParseError!u32 {
