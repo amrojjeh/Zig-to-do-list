@@ -10,13 +10,14 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(allocator);
 
-    config.FILE_NAME = getExeName(args[0]);
+    var buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    config.FILE_NAME = try getExeName(&buffer);
 
     try cli.execute(allocator, args[1..]);
 }
 
-fn getExeName(path: []const u8) []const u8 {
-    var i: usize = path.len - 1;
-    while (i != 0 and path[i] != '\\') : (i -= 1) { }
-    return path[i+1..path.len - 4]; // to remove the .exe
+fn getExeName(buffer: []u8) ![]const u8 {
+    const full_path = try std.fs.selfExePath(buffer);
+    const dir_path = try std.fs.selfExeDirPath(buffer[full_path.len..]);
+    return buffer[dir_path.len+1..full_path.len-4];
 }
