@@ -14,11 +14,6 @@ timezone: Date.Timezone,
 pub const Parser = struct {
     pub const seperator = "\x01";
 
-    pub fn strAlloc(self: Self, allocator: *Allocator) ![:0]u8 {
-        var buf = try allocator.alloc(u8, 100 * self.tasks.len());
-        return self.str(buf);
-    }
-
     pub fn str(self: Self, buffer: []u8) ![:0]u8 {
         var todo_iter = self.tasks.first;
         var i: usize = 0;
@@ -35,7 +30,7 @@ pub const Parser = struct {
         
 
         while (i < size) : (i += 1) {
-            var line = buffer[tail .. (1+i)*100];
+            var line = buffer[tail..];
             const task = todo_iter.?.data;
 
             const completed: i64 = if (task.completed) 1 else 0;
@@ -232,27 +227,27 @@ test "Basic" {
         .completed = true,
         });
 
-    const removed = todo.remove(2);
+    const removed = todo.remove(1);
     defer alloc.destroy(removed.?);
 
-    const string = try todo.strAlloc(alloc);
-    defer alloc.free(string);
+    var buffer: [200]u8 = undefined;
+    const string = try Parser.str(todo, &buffer);
 
-    const expected = "Math assignment|1619136000|1\nChemistry assignment|1617840000|0\n";
+    const expected = "0\n0\nChemistry assignment\x011617840000\x010\nMath assignment\x011619136000\x011\n";
     std.testing.expect(std.mem.eql(u8, string, expected));
 }
 
 test "Loading" {
     const alloc = std.testing.allocator;
-    const string = "Chemistry assignment|1617840000|0\nMath assignment|1619136000|1\n";
-    var result = try init_str(alloc, string);
+    const string = "0\n0\nChemistry assignment\x011617840000\x010\nMath assignment\x011619136000\x011\n";
+    var result = try Parser.parse(alloc, string);
     defer result.deinit();
 
-    std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.tasks.first.?.next.?.data.content));
-    std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.next.?.data.due.?);
-    std.testing.expectEqual(false, result.tasks.first.?.next.?.data.completed);
+    std.testing.expect(std.mem.eql(u8, "Chemistry assignment", result.tasks.first.?.data.content));
+    std.testing.expectEqual(Date { .days = 18725 }, result.tasks.first.?.data.due.?);
+    std.testing.expectEqual(false, result.tasks.first.?.data.completed);
 
-    std.testing.expect(std.mem.eql(u8, "Math assignment", result.tasks.first.?.data.content));
-    std.testing.expectEqual(Date { .days = 18725 + 15}, result.tasks.first.?.data.due.?);
-    std.testing.expectEqual(true, result.tasks.first.?.data.completed);
+    std.testing.expect(std.mem.eql(u8, "Math assignment", result.tasks.first.?.next.?.data.content));
+    std.testing.expectEqual(Date { .days = 18725 + 15}, result.tasks.first.?.next.?.data.due.?);
+    std.testing.expectEqual(true, result.tasks.first.?.next.?.data.completed);
 }
