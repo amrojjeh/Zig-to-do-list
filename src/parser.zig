@@ -101,11 +101,6 @@ fn getThisWeek(w: Date.DayOfWeek, date: Date) Date {
 }
 
 fn getThisMonth(date: Date) Date {
-    const isNewMonth = struct {
-        pub fn isNewMonth(old: Date, new: Date) bool {
-            return new.month() - 1 == old.month();
-        }
-    }.isNewMonth;
     const t = date.day();
     const month_num = date.month();
     const days_in_month = date.yearMonths()[month_num];
