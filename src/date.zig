@@ -186,8 +186,10 @@ pub fn yearMonths(self: Self) []const i64 {
 }
 
 /// Assumes normalized date
+// 0 is january 1st
 pub fn dayOfYear(self: Self) i64 {
-    return self.days - self.dayToLastYear();
+    const result = self.days - self.dayToLastYear();
+    return result;
 }
 
 fn dayToLastYear(self: Self) i64 {
@@ -202,11 +204,11 @@ pub fn year(self: Self) u32 {
 }
 
 /// Assumes normalized date
+// 0 is january
 pub fn month(self: Self) usize {
     const months = self.yearMonths();
     const m = indexBeforeSumExceedsValue(self.dayOfYear(), months);
-
-    return @intCast(usize, m); 
+    return @intCast(usize, m);
 }
 
 /// Assumes normalized date
@@ -310,7 +312,7 @@ fn indexBeforeSumExceedsValue(val: i64, list: []const i64) usize {
     var s: i64 = 0;
     for (list) |v, i| {
         s += v;
-        if (s >= val) {
+        if (s > val) {
             return i;
         }
     }
